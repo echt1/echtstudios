@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>echt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDT0KDU0bjEXeYiynpJAPflsPRSoE5b69A",
+    authDomain: "echtstudios-ca6eb.firebaseapp.com",
+    projectId: "echtstudios-ca6eb",
+    storageBucket: "echtstudios-ca6eb.firebasestorage.app",
+    messagingSenderId: "1041546888235",
+    appId: "1:1041546888235:web:5e21c71d99d815b46e966e",
+    measurementId: "G-LE6VPJVD71"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window._loadFilms = async function() {
+    try {
+      const snapshot = await getDocs(collection(db, 'films'));
+      const films = [];
+      snapshot.forEach(d => films.push({ id: d.id, ...d.data() }));
+      films.sort((a, b) => {
+        if (a.featured && !b.featured) return -1;
+        if (!a.featured && b.featured) return 1;
+        return (b.year || 0) - (a.year || 0);
+      });
+      window._filmsLoaded(films);
+    } catch(e) {
+      console.warn('Firebase Fehler, nutze Demo-Daten:', e);
+      window._filmsLoaded(window._demoFilms);
+    }
+  };
+</script>
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --red: #D50000;
+  --red-dark: #8B0000;
+  --red-mid: #B71C1C;
+  --bg: #0a0000;
+  --font: 'Plus Jakarta Sans', sans-serif;
+  --text: #FFFFFF;
+  --text-muted: rgba(255,255,255,0.55);
+  --text-subtle: rgba(255,255,255,0.32);
+  --nav-h: 60px;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 65vh;
+  background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(180,0,0,0.16) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── NAVBAR ── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--nav-h);
+  display: flex;
+  align-items: center;
+  padding: 0 2rem;
+  z-index: 100;
+  transition: background 0.4s, backdrop-filter 0.4s, border-bottom 0.4s;
+}
+nav.scrolled {
+  background: rgba(10,0,0,0.88);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 0.5px solid rgba(213,0,0,0.18);
+}
+.logo {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  text-decoration: none;
+  user-select: none;
+}
+.logo-img {
+  height: 28px;
+  width: auto;
+  display: inline-block;
+  vertical-align: middle;
+  object-fit: contain;
+}
+.modal-logo .logo-img { height: 22px; }
+.logo span { color: var(--red); }
+
+/* ── MAIN ── */
+main {
+  position: relative;
+  z-index: 1;
+  padding-top: var(--nav-h);
+}
+
+/* ── HERO ── */
+.hero { padding: 2rem 2rem 0; }
+
+.hero-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/8;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #3a0000;
+}
+.hero-thumb {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.5s ease;
+}
+.hero-card:hover .hero-thumb { transform: scale(1.03); }
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.15) 55%, transparent 100%);
+}
+.hero-content {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 2rem 2.5rem;
+}
+.hero-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--red);
+  border: 1px solid var(--red);
+  border-radius: 3px;
+  padding: 3px 8px;
+  margin-bottom: 0.75rem;
+}
+.hero-title {
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin-bottom: 0.6rem;
+}
+.hero-meta {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 1.25rem;
+}
+.hero-meta span { margin-right: 1rem; }
+.hero-desc {
+  font-size: 15px;
+  color: rgba(255,255,255,0.78);
+  line-height: 1.65;
+  max-width: 55ch;
+  margin-bottom: 1.5rem;
+}
+.hero-actions { display: flex; gap: 10px; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.15s, opacity 0.15s;
+}
+.btn:hover { transform: scale(1.03); }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--text); color: #000; }
+.btn-secondary { background: rgba(255,255,255,0.11); color: var(--text); border: 0.5px solid rgba(255,255,255,0.18); }
+
+/* ── SECTION ── */
+.section { padding: 2.5rem 2rem; }
+.section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+.section-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.section-count {
+  font-size: 12px;
+  color: var(--text-subtle);
+}
+
+.film-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* ── FILM CARD ── */
+.film-card {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  aspect-ratio: 16/10;
+  background: #1a0000;
+  transition: transform 0.25s cubic-bezier(.25,.46,.45,.94);
+}
+.film-card:hover {
+  transform: scale(1.025) translateY(-3px);
+}
+.film-card:hover .card-thumb { transform: scale(1.06); }
+
+.card-thumb-wrap {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.card-thumb {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.5s ease;
+}
+.card-thumb-placeholder {
+  width: 100%; height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.5rem;
+}
+
+/* Gradient: immer sichtbar (schwächer), beim Hover stärker */
+.card-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.05) 55%, transparent 100%);
+  transition: opacity 0.3s;
+}
+
+/* Play-Overlay */
+.card-play-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.25s;
+  background: rgba(0,0,0,0.3);
+}
+.film-card:hover .card-play-overlay { opacity: 1; }
+
+.play-circle {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.9);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.2s;
+}
+.film-card:hover .play-circle { transform: scale(1.08); }
+.play-tri {
+  width: 0; height: 0;
+  border-top: 10px solid transparent;
+  border-bottom: 10px solid transparent;
+  border-left: 16px solid #000;
+  margin-left: 4px;
+}
+
+/* Card info — zwei Modi */
+.card-info {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  padding: 12px 14px;
+  transition: opacity 0.25s, transform 0.25s;
+}
+
+/*
+  showCardInfo = true  → immer sichtbar
+  showCardInfo = false → nur beim Hover sichtbar (für Karten mit Film-Logo)
+*/
+.film-card.info-always .card-info {
+  opacity: 1;
+  transform: translateY(0);
+}
+.film-card.info-hover .card-info {
+  opacity: 0;
+  transform: translateY(6px);
+}
+.film-card.info-hover:hover .card-info {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.card-genre {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 3px;
+}
+.card-title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+.card-meta {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.card-dot {
+  width: 2px; height: 2px;
+  border-radius: 50%;
+  background: var(--text-subtle);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* ── SKELETON ── */
+.skeleton {
+  background: linear-gradient(90deg, #1a0000 25%, #2d0000 50%, #1a0000 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+  border-radius: 10px;
+  aspect-ratio: 16/10;
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ── MODAL (Fullscreen) ── */
+.modal-wrap {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  transform: translateY(100%);
+  transition: transform 0.42s cubic-bezier(.32,.72,0,1);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.modal-wrap.open { transform: translateY(0); }
+
+.modal-nav {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 1.5rem;
+  height: 56px;
+  background: rgba(10,0,0,0.92);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 0.5px solid rgba(255,255,255,0.07);
+  z-index: 10;
+}
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: var(--font);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 6px 0;
+  transition: color 0.2s;
+}
+.back-btn:hover { color: var(--text); }
+.modal-logo {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.modal-logo span { color: var(--red); }
+
+.modal-video-wrap {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #000;
+}
+.modal-video-wrap iframe {
+  width: 100%; height: 100%;
+  border: none;
+  display: block;
+}
+.video-placeholder {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 0.75rem;
+  color: var(--text-subtle);
+  background: #080000;
+  font-size: 13px;
+}
+.video-placeholder-icon { font-size: 2.5rem; opacity: 0.35; }
+
+.modal-body {
+  padding: 2rem 2rem 4rem;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+.modal-title {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin-bottom: 0.6rem;
+}
+.modal-meta-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.modal-genre-badge {
+  background: rgba(213,0,0,0.16);
+  color: var(--red);
+  border: 0.5px solid rgba(213,0,0,0.32);
+  border-radius: 4px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.modal-desc {
+  font-size: 16px;
+  line-height: 1.75;
+  color: rgba(255,255,255,0.78);
+  margin-bottom: 2rem;
+  max-width: 65ch;
+}
+.modal-credits {
+  border-top: 0.5px solid rgba(255,255,255,0.07);
+  padding-top: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1.5rem;
+}
+.credit-item label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  margin-bottom: 4px;
+}
+.credit-item span { font-size: 14px; }
+
+/* ── FOOTER ── */
+footer {
+  border-top: 0.5px solid rgba(255,255,255,0.05);
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-subtle);
+  font-size: 12px;
+  position: relative;
+  z-index: 1;
+}
+.footer-logo { font-size: 15px; font-weight: 800; letter-spacing: -0.03em; color: var(--text-subtle); }
+.footer-logo span { color: rgba(213,0,0,0.45); }
+
+/* ── REVEAL ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+  .hero { padding: 1rem 1rem 0; }
+  .section { padding: 2rem 1rem; }
+  .hero-content { padding: 1.25rem 1.25rem; }
+  .hero-desc { display: none; }
+  .film-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .modal-body { padding: 1.25rem 1rem 3rem; }
+  nav { padding: 0 1rem; }
+}
+</style>
+</head>
+<body>
+
+<nav id="navbar">
+  <a class="logo" href="#" onclick="closeModal(); return false;">
+    <img src="https://i.ibb.co/TBZqh63g/logo-mitschatten.png" alt="echt" class="logo-img"
+         onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
+    <span class="logo-text" style="display:none">echt<span>.</span></span>
+  </a>
+</nav>
+
+<main id="main">
+  <div class="hero" id="hero-section">
+    <div class="skeleton" id="hero-skeleton" style="aspect-ratio:16/8; border-radius:14px;"></div>
+  </div>
+
+  <section class="section" id="films-section" style="display:none">
+    <div class="section-header">
+      <h2 class="section-title">Alle Filme</h2>
+      <span class="section-count" id="film-count"></span>
+    </div>
+    <div class="film-grid" id="film-grid">
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+      <div class="skeleton"></div>
+    </div>
+  </section>
+
+  <footer>
+    <span class="footer-logo">
+      <img src="https://i.ibb.co/TBZqh63g/logo-mitschatten.png" alt="echt" class="logo-img" style="height:18px; opacity:0.45;"
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
+      <span style="display:none">echt<span>.</span></span>
+    </span>
+    <span>alle rechte vorbehalten</span>
+  </footer>
+</main>
+
+<!-- MODAL -->
+<div class="modal-wrap" id="modal" role="dialog" aria-modal="true">
+  <nav class="modal-nav">
+    <button class="back-btn" onclick="closeModal()">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M11 4L6 9L11 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Zurück
+    </button>
+    <div class="modal-logo">
+      <img src="https://i.ibb.co/TBZqh63g/logo-mitschatten.png" alt="echt" class="logo-img"
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
+      <span style="display:none">echt<span>.</span></span>
+    </div>
+  </nav>
+  <div class="modal-video-wrap" id="modal-video-wrap">
+    <div class="video-placeholder">
+      <div class="video-placeholder-icon">▶</div>
+      <p>Kein Video verlinkt</p>
+    </div>
+  </div>
+  <div class="modal-body">
+    <h1 class="modal-title" id="modal-title"></h1>
+    <div class="modal-meta-row" id="modal-meta"></div>
+    <p class="modal-desc" id="modal-desc"></p>
+    <div class="modal-credits" id="modal-credits"></div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────
+// DEMO-DATEN
+// Firestore-Felder: alle unten gezeigten Keys.
+// showCardInfo: true  → Titel/Jahr/Genre immer sichtbar
+// showCardInfo: false → nur beim Hover (wenn Film-Logo auf Thumbnail)
+// ─────────────────────────────────────────
+window._demoFilms = [
+  {
+    id: 'feuer-und-asche',
+    title: 'Feuer & Asche',
+    year: 2024,
+    duration: '18 min',
+    genre: 'Drama',
+    desc: 'Ein Feuerwehrmann kehrt nach einem traumatischen Einsatz in seine Heimatstadt zurück. Was er findet, ist nicht das, was er erwartet hatte — eine Geschichte über Schuld, Vergebung und das, was nach dem Feuer bleibt.',
+    thumbnail: '',
+    youtubeId: '',
+    featured: true,
+    showCardInfo: true,   // kein Film-Logo auf Thumbnail → Text zeigen
+    director: 'Dein Name',
+    camera: '',
+    music: '',
+    cast: '',
+    color: '#4a0d0d'
+  },
+  {
+    id: 'nachtschicht',
+    title: 'Nachtschicht',
+    year: 2024,
+    duration: '12 min',
+    genre: 'Thriller',
+    desc: 'Drei Taxifahrer. Eine Nacht. Eine Entscheidung, die alles verändert.',
+    thumbnail: '',
+    youtubeId: '',
+    featured: false,
+    showCardInfo: false,  // Film-Logo liegt auf dem Thumbnail → Text nur bei Hover
+    director: 'Dein Name',
+    color: '#0d1a2a'
+  },
+  {
+    id: 'waldboden',
+    title: 'Waldboden',
+    year: 2023,
+    duration: '8 min',
+    genre: 'Dokumentation',
+    desc: 'Was passiert unter unseren Füßen? Eine Reise ins unsichtbare Ökosystem des Waldes.',
+    thumbnail: '',
+    youtubeId: '',
+    featured: false,
+    showCardInfo: true,
+    director: 'Dein Name',
+    color: '#0a1f0a'
+  },
+  {
+    id: 'leerstand',
+    title: 'Leerstand',
+    year: 2023,
+    duration: '22 min',
+    genre: 'Drama',
+    desc: 'Ein verlassenes Haus, zwei Geschwister, und die Frage: Was bleibt von dem, was war?',
+    thumbnail: '',
+    youtubeId: '',
+    featured: false,
+    showCardInfo: true,
+    director: 'Dein Name',
+    color: '#1f1200'
+  }
+];
+
+// ─────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────
+let allFilms = [];
+let modalOpen = false;
+
+// Navbar scroll
+const navbar = document.getElementById('navbar');
+window.addEventListener('scroll', () => {
+  navbar.classList.toggle('scrolled', window.scrollY > 20);
+}, { passive: true });
+
+// ─────────────────────────────────────────
+// HERO
+// ─────────────────────────────────────────
+function renderHero(film) {
+  const hero = document.getElementById('hero-section');
+  const thumb = film.thumbnail
+    ? `<img class="hero-thumb" src="${film.thumbnail}" alt="${film.title}" loading="eager">`
+    : `<div class="hero-thumb" style="background:${film.color||'#3a0000'};width:100%;height:100%;"></div>`;
+
+  hero.innerHTML = `
+    <div class="hero-card" onclick="openFilm('${film.id}')">
+      ${thumb}
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <div class="hero-badge">Featured</div>
+        <h1 class="hero-title">${film.title}</h1>
+        <div class="hero-meta">
+          <span>${film.year}</span>
+          <span>${film.duration}</span>
+          <span>${film.genre}</span>
+        </div>
+        <p class="hero-desc">${film.desc}</p>
+        <div class="hero-actions">
+          <button class="btn btn-primary" onclick="event.stopPropagation(); openFilm('${film.id}')">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 2L11 7L3 12V2Z" fill="currentColor"/></svg>
+            Ansehen
+          </button>
+          <button class="btn btn-secondary" onclick="event.stopPropagation(); openFilm('${film.id}')">
+            Mehr Infos
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ─────────────────────────────────────────
+// GRID
+// ─────────────────────────────────────────
+function renderGrid(films) {
+  const grid = document.getElementById('film-grid');
+  const nonFeatured = films.filter(f => !f.featured);
+
+  document.getElementById('film-count').textContent =
+    `${nonFeatured.length} ${nonFeatured.length === 1 ? 'Film' : 'Filme'}`;
+
+  if (nonFeatured.length === 0) {
+    grid.innerHTML = `<div style="grid-column:1/-1;padding:3rem;text-align:center;color:var(--text-subtle);font-size:14px;">Noch keine weiteren Filme.</div>`;
+    return;
+  }
+
+  grid.innerHTML = nonFeatured.map(film => {
+    // showCardInfo: true → immer zeigen, false/undefined → nur bei Hover
+    const infoMode = film.showCardInfo === true ? 'info-always' : 'info-hover';
+    const thumb = film.thumbnail
+      ? `<img class="card-thumb" src="${film.thumbnail}" alt="${film.title}" loading="lazy">`
+      : `<div class="card-thumb-placeholder" style="background:${film.color||'#1a0000'}">🎞</div>`;
+
+    return `
+      <div class="film-card reveal ${infoMode}" onclick="openFilm('${film.id}')" role="button" tabindex="0" aria-label="${film.title} öffnen" onkeydown="if(event.key==='Enter')openFilm('${film.id}')">
+        <div class="card-thumb-wrap">${thumb}</div>
+        <div class="card-gradient"></div>
+        <div class="card-play-overlay">
+          <div class="play-circle"><div class="play-tri"></div></div>
+        </div>
+        <div class="card-info">
+          <div class="card-genre">${film.genre}</div>
+          <div class="card-title">${film.title}</div>
+          <div class="card-meta">
+            <span>${film.year}</span>
+            <span class="card-dot"></span>
+            <span>${film.duration}</span>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  // Scroll reveal
+  requestAnimationFrame(() => {
+    const io = new IntersectionObserver(entries => {
+      entries.forEach((e, i) => {
+        if (e.isIntersecting) {
+          setTimeout(() => e.target.classList.add('visible'), i * 60);
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.08 });
+    document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  });
+}
+
+// ─────────────────────────────────────────
+// MODAL
+// ─────────────────────────────────────────
+function openFilm(id) {
+  const film = allFilms.find(f => f.id === id);
+  if (!film) return;
+
+  document.getElementById('modal-title').textContent = film.title;
+  document.getElementById('modal-meta').innerHTML = `
+    <span class="modal-genre-badge">${film.genre}</span>
+    <span>${film.year}</span>
+    <span>·</span>
+    <span>${film.duration}</span>`;
+  document.getElementById('modal-desc').textContent = film.desc || '';
+
+  const credits = [
+    { label: 'Regie', value: film.director },
+    { label: 'Kamera', value: film.camera },
+    { label: 'Musik', value: film.music },
+    { label: 'Darsteller', value: film.cast },
+  ].filter(c => c.value);
+  document.getElementById('modal-credits').innerHTML = credits
+    .map(c => `<div class="credit-item"><label>${c.label}</label><span>${c.value}</span></div>`)
+    .join('');
+
+  const vw = document.getElementById('modal-video-wrap');
+  if (film.youtubeId) {
+    vw.innerHTML = `<iframe
+      src="https://www.youtube.com/embed/${film.youtubeId}?autoplay=1&rel=0&modestbranding=1&color=red"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      allowfullscreen title="${film.title}"></iframe>`;
+  } else {
+    vw.innerHTML = `<div class="video-placeholder"><div class="video-placeholder-icon">▶</div><p>Kein Video verlinkt</p></div>`;
+  }
+
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('modal').scrollTop = 0;
+  document.body.style.overflow = 'hidden';
+  modalOpen = true;
+  history.pushState({ filmId: id }, film.title, `#${id}`);
+  document.title = `${film.title} — echt`;
+}
+
+function closeModal() {
+  if (!modalOpen) return;
+  document.getElementById('modal').classList.remove('open');
+  document.body.style.overflow = '';
+  modalOpen = false;
+  // Video stoppen
+  const vw = document.getElementById('modal-video-wrap');
+  vw.innerHTML = `<div class="video-placeholder"><div class="video-placeholder-icon">▶</div><p>Kein Video verlinkt</p></div>`;
+  history.pushState({}, 'echt', window.location.pathname);
+  document.title = 'echt';
+}
+
+window.addEventListener('popstate', e => {
+  if (e.state?.filmId) openFilm(e.state.filmId);
+  else closeModal();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// ─────────────────────────────────────────
+// BOOT
+// ─────────────────────────────────────────
+window._filmsLoaded = function(films) {
+  allFilms = films;
+  const featured = films.find(f => f.featured) || films[0];
+
+  const skeleton = document.getElementById('hero-skeleton');
+  if (skeleton) skeleton.remove();
+  if (featured) renderHero(featured);
+
+  document.getElementById('films-section').style.display = '';
+  renderGrid(films);
+
+  const hash = window.location.hash.slice(1);
+  if (hash) {
+    const f = films.find(f => f.id === hash);
+    if (f) openFilm(f.id);
+  }
+};
+
+setTimeout(() => {
+  if (window._loadFilms) window._loadFilms();
+  else window._filmsLoaded(window._demoFilms);
+}, 300);
+</script>
+</body>
+</html>
