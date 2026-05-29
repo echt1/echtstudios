@@ -37,8 +37,8 @@
       });
       window._filmsLoaded(films);
     } catch(e) {
-      console.warn('Firebase Fehler, nutze Demo-Daten:', e);
-      window._filmsLoaded(window._demoFilms);
+      console.error('Firebase Fehler:', e);
+      window._filmsLoaded([]);
     }
   };
 </script>
@@ -126,7 +126,7 @@ main {
 .hero-card {
   position: relative;
   width: 100%;
-  aspect-ratio: 16/8;
+  aspect-ratio: 1280/510;
   border-radius: 14px;
   overflow: hidden;
   cursor: pointer;
@@ -413,10 +413,19 @@ main {
 }
 .modal-logo span { color: var(--red); }
 
+.modal-body {
+  padding: 2rem 2rem 4rem;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
 .modal-video-wrap {
   width: 100%;
   aspect-ratio: 16/9;
   background: #000;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 1.75rem;
 }
 .modal-video-wrap iframe {
   width: 100%; height: 100%;
@@ -425,6 +434,7 @@ main {
 }
 .video-placeholder {
   width: 100%; height: 100%;
+  min-height: 180px;
   display: flex; flex-direction: column;
   align-items: center; justify-content: center;
   gap: 0.75rem;
@@ -433,13 +443,6 @@ main {
   font-size: 13px;
 }
 .video-placeholder-icon { font-size: 2.5rem; opacity: 0.35; }
-
-.modal-body {
-  padding: 2rem 2rem 4rem;
-  max-width: 900px;
-  margin: 0 auto;
-  width: 100%;
-}
 .modal-title {
   font-size: clamp(2rem, 5vw, 3rem);
   font-weight: 800;
@@ -531,7 +534,7 @@ footer {
 
 <nav id="navbar">
   <a class="logo" href="#" onclick="closeModal(); return false;">
-    <img src="https://i.ibb.co/TBZqh63g/logo-mitschatten.png" alt="echt" class="logo-img"
+    <img src="https://i.ibb.co/8Drwfg9H/logo-mitschatten-cropped.png" alt="echt" class="logo-img"
          onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
     <span class="logo-text" style="display:none">echt<span>.</span></span>
   </a>
@@ -556,7 +559,7 @@ footer {
 
   <footer>
     <span class="footer-logo">
-      <img src="https://i.ibb.co/TBZqh63g/logo-mitschatten.png" alt="echt" class="logo-img" style="height:18px; opacity:0.45;"
+      <img src="https://i.ibb.co/8Drwfg9H/logo-mitschatten-cropped.png" alt="echt" class="logo-img" style="height:18px; opacity:0.45;"
            onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
       <span style="display:none">echt<span>.</span></span>
     </span>
@@ -574,18 +577,18 @@ footer {
       Zurück
     </button>
     <div class="modal-logo">
-      <img src="https://i.ibb.co/TBZqh63g/logo-mitschatten.png" alt="echt" class="logo-img"
+      <img src="https://i.ibb.co/8Drwfg9H/logo-mitschatten-cropped.png" alt="echt" class="logo-img"
            onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
       <span style="display:none">echt<span>.</span></span>
     </div>
   </nav>
-  <div class="modal-video-wrap" id="modal-video-wrap">
-    <div class="video-placeholder">
-      <div class="video-placeholder-icon">▶</div>
-      <p>Kein Video verlinkt</p>
-    </div>
-  </div>
   <div class="modal-body">
+    <div class="modal-video-wrap" id="modal-video-wrap">
+      <div class="video-placeholder">
+        <div class="video-placeholder-icon">▶</div>
+        <p>Kein Video verlinkt</p>
+      </div>
+    </div>
     <h1 class="modal-title" id="modal-title"></h1>
     <div class="modal-meta-row" id="modal-meta"></div>
     <p class="modal-desc" id="modal-desc"></p>
@@ -594,73 +597,6 @@ footer {
 </div>
 
 <script>
-// ─────────────────────────────────────────
-// DEMO-DATEN
-// Firestore-Felder: alle unten gezeigten Keys.
-// showCardInfo: true  → Titel/Jahr/Genre immer sichtbar
-// showCardInfo: false → nur beim Hover (wenn Film-Logo auf Thumbnail)
-// ─────────────────────────────────────────
-window._demoFilms = [
-  {
-    id: 'feuer-und-asche',
-    title: 'Feuer & Asche',
-    year: 2024,
-    duration: '18 min',
-    genre: 'Drama',
-    desc: 'Ein Feuerwehrmann kehrt nach einem traumatischen Einsatz in seine Heimatstadt zurück. Was er findet, ist nicht das, was er erwartet hatte — eine Geschichte über Schuld, Vergebung und das, was nach dem Feuer bleibt.',
-    thumbnail: '',
-    youtubeId: '',
-    featured: true,
-    showCardInfo: true,   // kein Film-Logo auf Thumbnail → Text zeigen
-    director: 'Dein Name',
-    camera: '',
-    music: '',
-    cast: '',
-    color: '#4a0d0d'
-  },
-  {
-    id: 'nachtschicht',
-    title: 'Nachtschicht',
-    year: 2024,
-    duration: '12 min',
-    genre: 'Thriller',
-    desc: 'Drei Taxifahrer. Eine Nacht. Eine Entscheidung, die alles verändert.',
-    thumbnail: '',
-    youtubeId: '',
-    featured: false,
-    showCardInfo: false,  // Film-Logo liegt auf dem Thumbnail → Text nur bei Hover
-    director: 'Dein Name',
-    color: '#0d1a2a'
-  },
-  {
-    id: 'waldboden',
-    title: 'Waldboden',
-    year: 2023,
-    duration: '8 min',
-    genre: 'Dokumentation',
-    desc: 'Was passiert unter unseren Füßen? Eine Reise ins unsichtbare Ökosystem des Waldes.',
-    thumbnail: '',
-    youtubeId: '',
-    featured: false,
-    showCardInfo: true,
-    director: 'Dein Name',
-    color: '#0a1f0a'
-  },
-  {
-    id: 'leerstand',
-    title: 'Leerstand',
-    year: 2023,
-    duration: '22 min',
-    genre: 'Drama',
-    desc: 'Ein verlassenes Haus, zwei Geschwister, und die Frage: Was bleibt von dem, was war?',
-    thumbnail: '',
-    youtubeId: '',
-    featured: false,
-    showCardInfo: true,
-    director: 'Dein Name',
-    color: '#1f1200'
-  }
-];
 
 // ─────────────────────────────────────────
 // STATE
@@ -792,8 +728,8 @@ function openFilm(id) {
   const vw = document.getElementById('modal-video-wrap');
   if (film.youtubeId) {
     vw.innerHTML = `<iframe
-      src="https://www.youtube.com/embed/${film.youtubeId}?autoplay=1&rel=0&modestbranding=1&color=red"
-      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      src="https://www.youtube.com/embed/${film.youtubeId}?autoplay=0&rel=0&modestbranding=1&color=white&iv_load_policy=3&disablekb=0"
+      allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       allowfullscreen title="${film.title}"></iframe>`;
   } else {
     vw.innerHTML = `<div class="video-placeholder"><div class="video-placeholder-icon">▶</div><p>Kein Video verlinkt</p></div>`;
@@ -830,10 +766,22 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal()
 // ─────────────────────────────────────────
 window._filmsLoaded = function(films) {
   allFilms = films;
-  const featured = films.find(f => f.featured) || films[0];
 
   const skeleton = document.getElementById('hero-skeleton');
   if (skeleton) skeleton.remove();
+
+  if (films.length === 0) {
+    document.getElementById('hero-section').innerHTML = '';
+    document.getElementById('films-section').style.display = '';
+    document.getElementById('film-grid').innerHTML = `
+      <div style="grid-column:1/-1;padding:4rem 2rem;text-align:center;color:var(--text-subtle);">
+        <div style="font-size:2rem;margin-bottom:1rem;opacity:0.3;">🎬</div>
+        <p style="font-size:14px;">Noch keine Filme in der Datenbank.</p>
+      </div>`;
+    return;
+  }
+
+  const featured = films.find(f => f.featured) || films[0];
   if (featured) renderHero(featured);
 
   document.getElementById('films-section').style.display = '';
@@ -852,7 +800,7 @@ function waitForFirebase(attempt) {
   } else if (attempt < 20) {
     setTimeout(() => waitForFirebase(attempt + 1), 100);
   } else {
-    window._filmsLoaded(window._demoFilms);
+    window._filmsLoaded([]);
   }
 }
 waitForFirebase(0);
