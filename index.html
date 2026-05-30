@@ -85,6 +85,9 @@ nav#navbar.scrolled {
 /* ── MAIN ── */
 main { position: relative; z-index: 1; padding-top: var(--nav-h); overflow-x: hidden; }
 
+/* ── SECTION ── */
+.section { padding: 2.5rem 2rem; }
+
 /* ── HERO CAROUSEL ── */
 .hero { padding: 2rem 2rem 0; position: relative; }
 .hero-card {
@@ -233,16 +236,24 @@ main { position: relative; z-index: 1; padding-top: var(--nav-h); overflow-x: hi
 .modal-share-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.3); }
 .modal-share-btn.copied { color: #4CAF50; border-color: #4CAF50; }
 
-.modal-body { padding: 2rem 2rem 4rem; max-width: 900px; margin: 0 auto; width: 100%; }
+.modal-body { padding: 2rem 2.5rem 4rem; width: 100%; max-width: 1400px; margin: 0 auto; }
+/* Wide modal layout: video + meta side by side for series */
+.modal-content-wrap { display: grid; grid-template-columns: 1fr; gap: 0; }
+.modal-content-wrap.has-episodes { grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: 2rem; align-items: start; }
+.modal-main-col { min-width: 0; }
+.modal-side-col { min-width: 0; }
+@media (max-width: 900px) {
+  .modal-content-wrap.has-episodes { grid-template-columns: 1fr; }
+}
 
-.modal-video-wrap { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 10px; overflow: hidden; margin-bottom: 1.75rem; }
+.modal-video-wrap { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 10px; overflow: hidden; margin-bottom: 1.5rem; }
 .modal-video-wrap iframe { width: 100%; height: 100%; border: none; display: block; }
 .video-placeholder { width: 100%; height: 100%; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; color: var(--text-subtle); background: #080000; font-size: 13px; }
 .video-placeholder-icon { font-size: 2.5rem; opacity: 0.3; }
 /* Thumbnail fallback for unreleased / no video */
 .modal-thumb-fallback {
   width: 100%; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden;
-  margin-bottom: 1.75rem; position: relative;
+  margin-bottom: 1.5rem; position: relative;
 }
 .modal-thumb-fallback-overlay {
   position: absolute; inset: 0;
@@ -281,8 +292,22 @@ main { position: relative; z-index: 1; padding-top: var(--nav-h); overflow-x: hi
 .season-tab:hover { color: var(--text); border-color: rgba(255,255,255,0.3); }
 .season-tab.active { background: rgba(213,0,0,0.18); color: var(--red); border-color: rgba(213,0,0,0.35); }
 
-.episode-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
+.episode-scroll-wrap { position: relative; }
+.episode-row {
+  display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px;
+  scrollbar-width: none; scroll-behavior: smooth;
+}
 .episode-row::-webkit-scrollbar { display: none; }
+.ep-arrow {
+  position: absolute; top: 0; bottom: 4px; width: 44px;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; cursor: pointer; z-index: 2;
+  transition: opacity 0.2s;
+}
+.ep-arrow:disabled { opacity: 0; pointer-events: none; }
+.ep-arrow-left { left: 0; background: linear-gradient(to right, rgba(10,0,0,0.9) 40%, transparent); padding-right: 8px; }
+.ep-arrow-right { right: 0; background: linear-gradient(to left, rgba(10,0,0,0.9) 40%, transparent); padding-left: 8px; }
+.ep-arrow svg { flex-shrink: 0; }
 
 .episode-card {
   flex-shrink: 0; width: 200px; min-width: 200px; border-radius: 8px; overflow: hidden;
@@ -641,24 +666,38 @@ function buildSeriesModal(series, activeIdx, seasonFilter) {
     </div>` : '';
 
   const episodeCards = !isUnreleased && eps.length > 0 ? `
-    <div class="episode-row">
-      ${eps.map((e, i) => {
-        const epThumb = e.thumbnail
-          ? `<img class="episode-thumb" src="${e.thumbnail}" alt="${e.title||'Folge '+(i+1)}" loading="lazy">`
-          : `<div class="episode-thumb" style="background:#0d0000;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">▶</div>`;
-        return `
-          <div class="episode-card ${i===activeIdx?'active':''}" onclick="switchEpisode('${series.id}',${i})">
-            <div class="episode-thumb-wrap">
-              ${epThumb}
-              <div class="episode-thumb-overlay"><div class="ep-play-circle"><div class="ep-play-tri"></div></div></div>
-            </div>
-            <div class="episode-card-body">
-              <div class="episode-num">Folge ${(e.season ? '' : '') + (i+1)}</div>
-              <div class="episode-name">${e.title || 'Ohne Titel'}</div>
-              ${e.duration ? `<div class="episode-dur">${e.duration}</div>` : ''}
-            </div>
-          </div>`;
-      }).join('')}
+    <div class="episode-scroll-wrap" id="ep-scroll-wrap-${series.id}">
+      <button class="ep-arrow ep-arrow-left" id="ep-arr-l-${series.id}" onclick="scrollEps('${series.id}',-1)" disabled>
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M11 4L6 9L11 14" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="episode-row" id="ep-row-${series.id}" onscroll="updateEpArrows('${series.id}')">
+        ${eps.map((e, i) => {
+          const ytThumb = e.youtubeId
+            ? `https://img.youtube.com/vi/${e.youtubeId}/mqdefault.jpg`
+            : null;
+          const epThumb = e.thumbnail
+            ? `<img class="episode-thumb" src="${e.thumbnail}" alt="${e.title||'Folge '+(i+1)}" loading="lazy">`
+            : ytThumb
+              ? `<img class="episode-thumb" src="${ytThumb}" alt="${e.title||'Folge '+(i+1)}" loading="lazy" onerror="this.style.display='none'">`
+              : `<div class="episode-thumb" style="background:#0d0000;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.2rem;color:rgba(255,255,255,0.2)">▶</div>`;
+          const epNum = e.season ? `S${e.season} E${i+1}` : `Folge ${i+1}`;
+          return `
+            <div class="episode-card ${i===activeIdx?'active':''}" onclick="switchEpisode('${series.id}',${i})">
+              <div class="episode-thumb-wrap">
+                ${epThumb}
+                <div class="episode-thumb-overlay"><div class="ep-play-circle"><div class="ep-play-tri"></div></div></div>
+              </div>
+              <div class="episode-card-body">
+                <div class="episode-num">${epNum}</div>
+                <div class="episode-name">${e.title || 'Ohne Titel'}</div>
+                ${e.duration ? `<div class="episode-dur">${e.duration}</div>` : ''}
+              </div>
+            </div>`;
+        }).join('')}
+      </div>
+      <button class="ep-arrow ep-arrow-right" id="ep-arr-r-${series.id}" onclick="scrollEps('${series.id}',1)">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7 4L12 9L7 14" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
     </div>` : '';
 
   const credits = [
@@ -666,8 +705,8 @@ function buildSeriesModal(series, activeIdx, seasonFilter) {
     { label: 'Musik', value: series.music }, { label: 'Darsteller', value: series.cast },
   ].filter(c => c.value);
 
-  return `
-    ${videoBlock}
+  const hasEps = !isUnreleased && eps.length > 0;
+  const metaBlock = `
     <h1 class="modal-title">${series.title}</h1>
     <div class="modal-meta-row">
       <span class="modal-genre-badge">${series.genre||''}</span>
@@ -677,15 +716,39 @@ function buildSeriesModal(series, activeIdx, seasonFilter) {
       ${allEps.length ? `<span>·</span><span>${allEps.length} Folgen</span>` : ''}
     </div>
     ${series.desc ? `<p class="modal-desc">${series.desc}</p>` : ''}
-    ${!isUnreleased && eps.length > 0 ? `
-      <div class="episodes-section">
-        <div class="episodes-header">
-          <div class="episodes-title">Folgen</div>
-          ${seasonTabs}
-        </div>
-        ${episodeCards}
-      </div>` : ''}
     ${credits.length ? `<div class="modal-credits">${credits.map(c => `<div class="credit-item"><label>${c.label}</label><span>${c.value}</span></div>`).join('')}</div>` : ''}`;
+
+  const epsBlock = hasEps ? `
+    <div class="episodes-section">
+      <div class="episodes-header">
+        <div class="episodes-title">Folgen</div>
+        ${seasonTabs}
+      </div>
+      ${episodeCards}
+    </div>` : '';
+
+  if (hasEps) {
+    return `<div class="modal-content-wrap has-episodes">
+      <div class="modal-main-col">${videoBlock}${metaBlock}</div>
+      <div class="modal-side-col">${epsBlock}</div>
+    </div>`;
+  }
+  return `${videoBlock}${metaBlock}`;
+}
+
+function scrollEps(id, dir) {
+  const row = document.getElementById('ep-row-' + id);
+  if (!row) return;
+  row.scrollBy({ left: dir * 220, behavior: 'smooth' });
+  setTimeout(() => updateEpArrows(id), 320);
+}
+function updateEpArrows(id) {
+  const row = document.getElementById('ep-row-' + id);
+  const btnL = document.getElementById('ep-arr-l-' + id);
+  const btnR = document.getElementById('ep-arr-r-' + id);
+  if (!row || !btnL || !btnR) return;
+  btnL.disabled = row.scrollLeft <= 4;
+  btnR.disabled = row.scrollLeft + row.clientWidth >= row.scrollWidth - 4;
 }
 
 function switchEpisode(seriesId, idx) {
@@ -694,6 +757,7 @@ function switchEpisode(seriesId, idx) {
   activeEpisodeIdx = idx;
   document.getElementById('modal-body').innerHTML = buildSeriesModal(series, idx, activeSeason);
   document.getElementById('modal').scrollTop = 0;
+  setTimeout(() => updateEpArrows(seriesId), 50);
 }
 
 function switchSeason(seriesId, season) {
