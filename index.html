@@ -48,7 +48,7 @@
   --nav-h: 60px;
 }
 html { scroll-behavior: smooth; }
-body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
 body::before {
   content: ''; position: fixed; top: 0; left: 0; right: 0; height: 65vh;
   background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(180,0,0,0.16) 0%, transparent 70%);
@@ -83,7 +83,7 @@ nav#navbar.scrolled {
 .search-clear.visible { display: block; }
 
 /* ── MAIN ── */
-main { position: relative; z-index: 1; padding-top: var(--nav-h); }
+main { position: relative; z-index: 1; padding-top: var(--nav-h); overflow-x: hidden; }
 
 /* ── HERO CAROUSEL ── */
 .hero { padding: 2rem 2rem 0; position: relative; }
@@ -138,33 +138,6 @@ main { position: relative; z-index: 1; padding-top: var(--nav-h); }
 .btn:active { transform: scale(0.97); }
 .btn-primary { background: var(--text); color: #000; }
 .btn-secondary { background: rgba(255,255,255,0.11); color: var(--text); border: 0.5px solid rgba(255,255,255,0.18); }
-
-/* ── RECENTLY ADDED ── */
-.section { padding: 2.5rem 2rem; }
-.section-label {
-  font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--red); margin-bottom: 0.5rem;
-}
-.section-heading { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 1.25rem; }
-
-.recent-row {
-  display: flex; gap: 12px; overflow-x: auto; padding-bottom: 6px;
-  scrollbar-width: none;
-}
-.recent-row::-webkit-scrollbar { display: none; }
-.recent-card {
-  flex-shrink: 0; width: 200px; border-radius: 8px; overflow: hidden;
-  cursor: pointer; background: #1a0000; aspect-ratio: 16/10; position: relative;
-  transition: transform 0.2s;
-}
-.recent-card:hover { transform: scale(1.04) translateY(-2px); }
-.recent-card:hover .recent-thumb { transform: scale(1.07); }
-.recent-thumb-wrap { position: absolute; inset: 0; overflow: hidden; }
-.recent-thumb { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
-.recent-gradient { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 60%); }
-.recent-info { position: absolute; bottom: 0; left: 0; right: 0; padding: 8px 10px; }
-.recent-title { font-size: 12px; font-weight: 700; line-height: 1.2; }
-.recent-meta { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
 
 /* ── FILM GRID ── */
 .search-results-header { font-size: 13px; color: var(--text-subtle); margin-bottom: 1rem; }
@@ -266,16 +239,24 @@ main { position: relative; z-index: 1; padding-top: var(--nav-h); }
 .modal-video-wrap iframe { width: 100%; height: 100%; border: none; display: block; }
 .video-placeholder { width: 100%; height: 100%; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; color: var(--text-subtle); background: #080000; font-size: 13px; }
 .video-placeholder-icon { font-size: 2.5rem; opacity: 0.3; }
-
-.announcement-box {
-  width: 100%; border-radius: 10px; border: 0.5px solid rgba(213,0,0,0.25);
-  background: rgba(213,0,0,0.06); padding: 2.5rem 2rem; margin-bottom: 1.75rem;
-  display: flex; flex-direction: column; align-items: center; text-align: center; gap: 0.75rem;
+/* Thumbnail fallback for unreleased / no video */
+.modal-thumb-fallback {
+  width: 100%; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden;
+  margin-bottom: 1.75rem; position: relative;
 }
-.announcement-icon { font-size: 2rem; opacity: 0.6; }
-.announcement-title { font-size: 13px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--red); }
-.announcement-text { font-size: 14px; color: var(--text-muted); }
-.announcement-release { font-size: 13px; color: var(--text-subtle); margin-top: 0.25rem; }
+.modal-thumb-fallback-overlay {
+  position: absolute; inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.2) 60%, rgba(0,0,0,0.4) 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem;
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+}
+.modal-thumb-badge {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--red); border: 1px solid var(--red); border-radius: 4px; padding: 5px 14px;
+}
+.modal-thumb-release { font-size: 13px; color: rgba(255,255,255,0.55); }
+
+
 
 .modal-title { font-size: clamp(2rem, 5vw, 3rem); font-weight: 800; letter-spacing: -0.04em; line-height: 1.05; margin-bottom: 0.6rem; }
 .modal-meta-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 1.5rem; font-size: 13px; color: var(--text-muted); }
@@ -304,7 +285,7 @@ main { position: relative; z-index: 1; padding-top: var(--nav-h); }
 .episode-row::-webkit-scrollbar { display: none; }
 
 .episode-card {
-  flex-shrink: 0; width: 200px; border-radius: 8px; overflow: hidden;
+  flex-shrink: 0; width: 200px; min-width: 200px; border-radius: 8px; overflow: hidden;
   cursor: pointer; background: rgba(255,255,255,0.04); border: 0.5px solid rgba(255,255,255,0.07);
   transition: background 0.2s, border-color 0.2s, transform 0.2s;
   position: relative;
@@ -326,26 +307,6 @@ main { position: relative; z-index: 1; padding-top: var(--nav-h); }
 .episode-card.active .episode-num { color: var(--red); }
 .episode-name { font-size: 13px; font-weight: 600; line-height: 1.3; }
 .episode-dur { font-size: 11px; color: var(--text-subtle); margin-top: 3px; }
-
-/* ── INTRO OVERLAY ── */
-.intro-overlay {
-  position: fixed; inset: 0; background: #000; z-index: 999;
-  display: flex; align-items: center; justify-content: center;
-  pointer-events: none;
-}
-.intro-overlay.playing { pointer-events: all; }
-.intro-word {
-  font-family: var(--font); font-weight: 800; font-size: clamp(3rem, 10vw, 8rem);
-  letter-spacing: -0.04em; color: #fff;
-  opacity: 0; transform: scale(0.92);
-  transition: none;
-}
-.intro-dot { color: var(--red); }
-.intro-line {
-  position: absolute; height: 2px; background: var(--red);
-  width: 0; bottom: calc(50% - clamp(2.5rem, 5vw, 4rem)); left: 50%;
-  transform: translateX(-50%);
-}
 
 /* ── FOOTER ── */
 footer { border-top: 0.5px solid rgba(255,255,255,0.05); padding: 2rem; display: flex; align-items: center; justify-content: space-between; color: var(--text-subtle); font-size: 12px; position: relative; z-index: 1; }
@@ -371,12 +332,6 @@ footer { border-top: 0.5px solid rgba(255,255,255,0.05); padding: 2rem; display:
 </head>
 <body>
 
-<!-- INTRO OVERLAY -->
-<div class="intro-overlay" id="intro-overlay" style="display:none">
-  <div class="intro-word" id="intro-word">echt<span class="intro-dot">.</span></div>
-  <div class="intro-line" id="intro-line"></div>
-</div>
-
 <!-- NAV -->
 <nav id="navbar">
   <a class="logo" href="#" onclick="closeModal(); return false;">
@@ -399,13 +354,6 @@ footer { border-top: 0.5px solid rgba(255,255,255,0.05); padding: 2rem; display:
   <div class="hero" id="hero-section">
     <div class="skeleton" id="hero-skeleton" style="aspect-ratio:1280/510; border-radius:14px;"></div>
   </div>
-
-  <!-- Recently Added -->
-  <section class="section" id="recent-section" style="display:none">
-    <div class="section-label">Neu</div>
-    <div class="section-heading">Zuletzt hinzugefügt</div>
-    <div class="recent-row" id="recent-row"></div>
-  </section>
 
   <section class="section" id="films-section" style="display:none">
     <div id="search-results-header" style="display:none" class="search-results-header"></div>
@@ -461,59 +409,18 @@ let heroTimer = null;
 const navbar = document.getElementById('navbar');
 window.addEventListener('scroll', () => { navbar.classList.toggle('scrolled', window.scrollY > 20); }, { passive: true });
 
-// ── INTRO ANIMATION ──
-function playIntro(callback) {
-  const overlay = document.getElementById('intro-overlay');
-  const word = document.getElementById('intro-word');
-  const line = document.getElementById('intro-line');
-  overlay.style.display = 'flex';
-  overlay.classList.add('playing');
-
-  // Phase 1: word fades + scales in
-  requestAnimationFrame(() => {
-    word.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
-    word.style.opacity = '1';
-    word.style.transform = 'scale(1)';
-  });
-
-  // Phase 2: red line sweeps
-  setTimeout(() => {
-    line.style.transition = 'width 0.4s ease';
-    line.style.width = '8ch';
-  }, 500);
-
-  // Phase 3: flash + fade out
-  setTimeout(() => {
-    overlay.style.transition = 'opacity 0.3s ease';
-    overlay.style.opacity = '0';
-  }, 1100);
-
-  setTimeout(() => {
-    overlay.style.display = 'none';
-    overlay.style.opacity = '1';
-    overlay.classList.remove('playing');
-    // Reset for next time
-    word.style.transition = 'none'; word.style.opacity = '0'; word.style.transform = 'scale(0.92)';
-    line.style.transition = 'none'; line.style.width = '0';
-    if (callback) callback();
-  }, 1400);
-}
-
 // ── SEARCH ──
 function handleSearch(q) {
   document.getElementById('search-clear').classList.toggle('visible', q.length > 0);
   renderGrid(allItems, q.trim().toLowerCase());
   const hero = document.getElementById('hero-section');
-  const recent = document.getElementById('recent-section');
   if (q) {
-    [hero, recent].forEach(el => {
-      el.style.transition = 'opacity 0.3s, max-height 0.4s, padding 0.4s';
-      el.style.opacity = '0'; el.style.maxHeight = '0';
-      el.style.padding = '0'; el.style.overflow = 'hidden';
-    });
+    hero.style.transition = 'opacity 0.3s, max-height 0.4s, padding 0.4s';
+    hero.style.opacity = '0'; hero.style.maxHeight = '0';
+    hero.style.padding = '0'; hero.style.overflow = 'hidden';
     setTimeout(() => document.getElementById('films-section').scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   } else {
-    [hero, recent].forEach(el => { el.style.opacity = '1'; el.style.maxHeight = ''; el.style.padding = ''; el.style.overflow = ''; });
+    hero.style.opacity = '1'; hero.style.maxHeight = ''; hero.style.padding = ''; hero.style.overflow = '';
   }
 }
 function clearSearch() {
@@ -599,33 +506,6 @@ function startHeroTimer() {
   }, 6000);
 }
 
-// ── RECENTLY ADDED ──
-function renderRecent(items) {
-  // Take up to 6 most recent non-featured items
-  const recent = [...items]
-    .sort((a, b) => (b.addedAt || b.year || 0) - (a.addedAt || a.year || 0))
-    .filter(i => !i.featured)
-    .slice(0, 6);
-
-  if (recent.length < 2) { document.getElementById('recent-section').style.display = 'none'; return; }
-  document.getElementById('recent-section').style.display = '';
-
-  document.getElementById('recent-row').innerHTML = recent.map(item => {
-    const thumb = item.thumbnail
-      ? `<img class="recent-thumb" src="${item.thumbnail}" alt="${item.title}" loading="lazy">`
-      : `<div class="recent-thumb" style="background:${item.color||'#1a0000'};width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">🎞</div>`;
-    return `
-      <div class="recent-card reveal" onclick="openItem('${item.id}')">
-        <div class="recent-thumb-wrap">${thumb}</div>
-        <div class="recent-gradient"></div>
-        <div class="recent-info">
-          <div class="recent-title">${item.title}</div>
-          <div class="recent-meta">${item.year||''} ${item.genre ? '· '+item.genre : ''}</div>
-        </div>
-      </div>`;
-  }).join('');
-}
-
 // ── GRID ──
 function renderGrid(items, query = '') {
   const grid = document.getElementById('film-grid');
@@ -692,16 +572,23 @@ function buildFilmModal(film) {
     { label: 'Musik', value: film.music }, { label: 'Darsteller', value: film.cast },
   ].filter(c => c.value);
 
+  const thumbBg = film.thumbnail
+    ? `style="background:url('${film.thumbnail}') center/cover no-repeat"`
+    : `style="background:${film.color||'#1a0000'}"`;
   const videoBlock = isUnreleased
-    ? `<div class="announcement-box">
-        <div class="announcement-icon">📽️</div>
-        <div class="announcement-title">Demnächst</div>
-        <p class="announcement-text">Dieser Film ist noch nicht erschienen.</p>
-        ${film.releaseDate ? `<p class="announcement-release">Geplant: ${film.releaseDate}</p>` : ''}
+    ? `<div class="modal-thumb-fallback" ${thumbBg}>
+        <div class="modal-thumb-fallback-overlay">
+          <div class="modal-thumb-badge">Demnächst</div>
+          ${film.releaseDate ? `<div class="modal-thumb-release">Geplant: ${film.releaseDate}</div>` : ''}
+        </div>
       </div>`
     : film.youtubeId
       ? `<div class="modal-video-wrap"><iframe src="https://www.youtube.com/embed/${film.youtubeId}?autoplay=0&rel=0&modestbranding=1&color=white&iv_load_policy=3" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen title="${film.title}"></iframe></div>`
-      : `<div class="modal-video-wrap"><div class="video-placeholder"><div class="video-placeholder-icon">▶</div><p>Kein Video verlinkt</p></div></div>`;
+      : `<div class="modal-thumb-fallback" ${thumbBg}>
+          <div class="modal-thumb-fallback-overlay">
+            <div class="modal-thumb-badge" style="color:var(--text-subtle);border-color:rgba(255,255,255,0.2)">Kein Video verfügbar</div>
+          </div>
+        </div>`;
 
   return `
     ${videoBlock}
@@ -730,16 +617,23 @@ function buildSeriesModal(series, activeIdx, seasonFilter) {
   const eps = hasSeason && seasonFilter != null ? allEps.filter(e => e.season === seasonFilter) : allEps;
   const ep = eps[activeIdx];
 
+  const sThumbBg = series.thumbnail
+    ? `style="background:url('${series.thumbnail}') center/cover no-repeat"`
+    : `style="background:${series.color||'#1a0000'}"`;
   const videoBlock = isUnreleased
-    ? `<div class="announcement-box">
-        <div class="announcement-icon">🎬</div>
-        <div class="announcement-title">Demnächst</div>
-        <p class="announcement-text">Diese Serie ist noch nicht erschienen.</p>
-        ${series.releaseDate ? `<p class="announcement-release">Geplant: ${series.releaseDate}</p>` : ''}
+    ? `<div class="modal-thumb-fallback" ${sThumbBg}>
+        <div class="modal-thumb-fallback-overlay">
+          <div class="modal-thumb-badge">Demnächst</div>
+          ${series.releaseDate ? `<div class="modal-thumb-release">Geplant: ${series.releaseDate}</div>` : ''}
+        </div>
       </div>`
     : ep && ep.youtubeId
       ? `<div class="modal-video-wrap"><iframe src="https://www.youtube.com/embed/${ep.youtubeId}?autoplay=0&rel=0&modestbranding=1&color=white&iv_load_policy=3" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen title="${ep.title||series.title}"></iframe></div>`
-      : `<div class="modal-video-wrap"><div class="video-placeholder"><div class="video-placeholder-icon">▶</div><p>${ep ? 'Kein Video verlinkt' : 'Keine Folgen'}</p></div></div>`;
+      : `<div class="modal-thumb-fallback" ${sThumbBg}>
+          <div class="modal-thumb-fallback-overlay">
+            <div class="modal-thumb-badge" style="color:var(--text-subtle);border-color:rgba(255,255,255,0.2)">Kein Video verfügbar</div>
+          </div>
+        </div>`;
 
   const seasonTabs = hasSeason ? `
     <div class="season-tabs">
@@ -829,11 +723,7 @@ function openItem(id) {
     document.title = `${item.title} — echt`;
   };
 
-  if (item.showIntro) {
-    playIntro(doOpen);
-  } else {
-    doOpen();
-  }
+  doOpen();
 }
 
 // ── SHARE ──
@@ -879,7 +769,6 @@ window._filmsLoaded = function(items) {
   }
 
   renderHero(items);
-  renderRecent(items);
   document.getElementById('films-section').style.display = '';
   renderGrid(items);
 
