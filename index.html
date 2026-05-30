@@ -124,12 +124,26 @@ main { position: relative; z-index: 1; padding-top: var(--nav-h); overflow-x: hi
   display: flex; gap: 6px; align-items: center; z-index: 2;
 }
 .hero-dot {
-  width: 6px; height: 6px; border-radius: 50%;
+  width: 6px; height: 6px; border-radius: 3px;
   background: rgba(255,255,255,0.3);
-  cursor: pointer; transition: background 0.3s, transform 0.3s;
-  border: none; padding: 0;
+  cursor: pointer; border: none; padding: 0;
+  transition: width 0.35s cubic-bezier(.4,0,.2,1), background 0.3s;
+  position: relative; overflow: hidden; flex-shrink: 0;
 }
-.hero-dot.active { background: #fff; transform: scale(1.3); }
+.hero-dot.active {
+  width: 28px;
+  background: rgba(255,255,255,0.35);
+}
+.hero-dot.active::after {
+  content: '';
+  position: absolute; top: 0; left: 0; height: 100%;
+  background: #fff; border-radius: 3px;
+  animation: dot-progress 6s linear forwards;
+}
+@keyframes dot-progress {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
 
 /* ── BUTTONS ── */
 .btn {
@@ -241,20 +255,6 @@ main { position: relative; z-index: 1; padding-top: var(--nav-h); overflow-x: hi
 
 
 .modal-video-wrap { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 10px; overflow: hidden; margin-bottom: 1.5rem; }
-/* Modal video with overlay title (like hero) */
-.modal-video-hero { position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; margin-bottom: 1.75rem; background: #000; }
-.modal-video-hero iframe { width: 100%; height: 100%; border: none; display: block; }
-.modal-video-hero-overlay {
-  position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.0) 45%);
-}
-.modal-video-hero-info {
-  position: absolute; bottom: 0; left: 0; right: 0;
-  padding: 1.5rem 1.75rem;
-  pointer-events: none;
-}
-.modal-video-hero-info .modal-meta-row { margin-bottom: 0.5rem; }
-.modal-video-hero-info .modal-title { margin-bottom: 0.4rem; }
 
 .modal-video-wrap iframe { width: 100%; height: 100%; border: none; display: block; }
 .video-placeholder { width: 100%; height: 100%; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; color: var(--text-subtle); background: #080000; font-size: 13px; }
@@ -327,7 +327,7 @@ main { position: relative; z-index: 1; padding-top: var(--nav-h); overflow-x: hi
 .episode-card:hover { background: rgba(255,255,255,0.08); transform: translateY(-2px); }
 .episode-card.active { background: rgba(213,0,0,0.12); border-color: rgba(213,0,0,0.3); }
 
-.episode-thumb-wrap { width: 100%; aspect-ratio: 16/9; overflow: hidden; position: relative; background: #0d0000; }
+.episode-thumb-wrap { width: 100%; aspect-ratio: 16/9; overflow: hidden; position: relative; background: #0d0000; flex-shrink: 0; }
 .episode-thumb { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s; }
 .episode-card:hover .episode-thumb { transform: scale(1.05); }
 .episode-thumb-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.3); display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
@@ -336,11 +336,16 @@ main { position: relative; z-index: 1; padding-top: var(--nav-h); overflow-x: hi
 .ep-play-circle { width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.85); display: flex; align-items: center; justify-content: center; }
 .ep-play-tri { width: 0; height: 0; border-top: 6px solid transparent; border-bottom: 6px solid transparent; border-left: 9px solid #000; margin-left: 2px; }
 
-.episode-card-body { padding: 8px 10px 10px; }
-.episode-num { font-size: 10px; font-weight: 700; color: var(--text-subtle); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 3px; }
+.episode-card-body {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 8px 10px 9px;
+  background: linear-gradient(to top, rgba(0,0,0,0.88) 0%, transparent 100%);
+  pointer-events: none;
+}
+.episode-num { font-size: 10px; font-weight: 700; color: var(--red); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 2px; }
 .episode-card.active .episode-num { color: var(--red); }
-.episode-name { font-size: 13px; font-weight: 600; line-height: 1.3; }
-.episode-dur { font-size: 11px; color: var(--text-subtle); margin-top: 3px; }
+.episode-name { font-size: 12px; font-weight: 600; line-height: 1.25; color: #fff; }
+.episode-dur { font-size: 10px; color: rgba(255,255,255,0.5); margin-top: 2px; }
 
 /* ── FOOTER ── */
 footer { border-top: 0.5px solid rgba(255,255,255,0.05); padding: 2rem; display: flex; align-items: center; justify-content: space-between; color: var(--text-subtle); font-size: 12px; position: relative; z-index: 1; }
@@ -520,14 +525,27 @@ function renderHero(items) {
       ${dots}
     </div>`;
 
-  if (featuredItems.length > 1) startHeroTimer();
+  if (featuredItems.length > 1) {
+    startHeroTimer();
+    // Trigger animation on first dot
+    requestAnimationFrame(() => {
+      const firstDot = document.querySelector('.hero-dot.active');
+      if (firstDot) { void firstDot.offsetWidth; firstDot.classList.remove('active'); void firstDot.offsetWidth; firstDot.classList.add('active'); }
+    });
+  }
 }
 
 function goHeroSlide(idx) {
   const slides = document.querySelectorAll('.hero-slide');
   const dots = document.querySelectorAll('.hero-dot');
   slides.forEach((s, i) => s.classList.toggle('active', i === idx));
-  dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+  dots.forEach((d, i) => {
+    d.classList.remove('active');
+    if (i === idx) {
+      void d.offsetWidth; // force reflow to restart animation
+      d.classList.add('active');
+    }
+  });
   heroIdx = idx;
   if (heroTimer) { clearInterval(heroTimer); startHeroTimer(); }
 }
@@ -624,29 +642,15 @@ function buildFilmModal(film) {
           </div>
         </div>`;
 
-  // For films with a video: title overlaid on video; otherwise title above content
-  const metaBadges = `
-    <span class="modal-genre-badge">${film.genre||''}</span>
-    ${isUnreleased ? '<span class="modal-meta-badge">Unveröffentlicht</span>' : ''}
-    ${film.year ? `<span>${film.year}</span>` : ''}
-    ${film.duration ? `<span>·</span><span>${film.duration}</span>` : ''}`;
-
-  const hasVideo = !isUnreleased && film.youtubeId;
-  const videoWithOverlay = hasVideo ? `
-    <div class="modal-video-hero">
-      <iframe src="https://www.youtube.com/embed/${film.youtubeId}?autoplay=0&rel=0&modestbranding=1&color=white&iv_load_policy=3"
-        allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen title="${film.title}"></iframe>
-      <div class="modal-video-hero-overlay"></div>
-      <div class="modal-video-hero-info">
-        <div class="modal-meta-row">${metaBadges}</div>
-        <h1 class="modal-title">${film.title}</h1>
-      </div>
-    </div>` : videoBlock;
-
   return `
-    ${videoWithOverlay}
-    ${!hasVideo ? `<h1 class="modal-title">${film.title}</h1><div class="modal-meta-row">${metaBadges}</div>` : ''}
+    ${videoBlock}
+    <h1 class="modal-title">${film.title}</h1>
+    <div class="modal-meta-row">
+      <span class="modal-genre-badge">${film.genre||''}</span>
+      ${isUnreleased ? '<span class="modal-meta-badge">Unveröffentlicht</span>' : ''}
+      ${film.year ? `<span>${film.year}</span>` : ''}
+      ${film.duration ? `<span>·</span><span>${film.duration}</span>` : ''}
+    </div>
     ${film.desc ? `<p class="modal-desc">${film.desc}</p>` : ''}
     ${credits.length ? `<div class="modal-credits">${credits.map(c => `<div class="credit-item"><label>${c.label}</label><span>${c.value}</span></div>`).join('')}</div>` : ''}`;
 }
@@ -736,22 +740,10 @@ function buildSeriesModal(series, activeIdx, seasonFilter) {
     ${series.year ? `<span>${series.year}</span>` : ''}
     ${allEps.length ? `<span>·</span><span>${allEps.length} Folgen</span>` : ''}`;
 
-  const hasSeriesVideo = !isUnreleased && ep && ep.youtubeId;
-  const videoWithOverlay = hasSeriesVideo ? `
-    <div class="modal-video-hero">
-      <iframe src="https://www.youtube.com/embed/${ep.youtubeId}?autoplay=0&rel=0&modestbranding=1&color=white&iv_load_policy=3"
-        allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen title="${ep.title||series.title}"></iframe>
-      <div class="modal-video-hero-overlay"></div>
-      <div class="modal-video-hero-info">
-        <div class="modal-meta-row">${seriesMetaBadges}</div>
-        <h1 class="modal-title">${series.title}</h1>
-      </div>
-    </div>` : videoBlock;
-
   return `
-    ${videoWithOverlay}
-    ${!hasSeriesVideo ? `<h1 class="modal-title">${series.title}</h1><div class="modal-meta-row">${seriesMetaBadges}</div>` : ''}
+    ${videoBlock}
+    <h1 class="modal-title">${series.title}</h1>
+    <div class="modal-meta-row">${seriesMetaBadges}</div>
     ${series.desc ? `<p class="modal-desc">${series.desc}</p>` : ''}
     ${hasEps ? `
       <div class="episodes-section">
