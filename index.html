@@ -28,14 +28,14 @@
   window._loadFilms = async function() {
     try {
       const snapshot = await getDocs(collection(db, 'films'));
-      const films = [];
-      snapshot.forEach(d => films.push({ id: d.id, ...d.data() }));
-      films.sort((a, b) => {
+      const items = [];
+      snapshot.forEach(d => items.push({ id: d.id, ...d.data() }));
+      items.sort((a, b) => {
         if (a.featured && !b.featured) return -1;
         if (!a.featured && b.featured) return 1;
         return (b.year || 0) - (a.year || 0);
       });
-      window._filmsLoaded(films);
+      window._filmsLoaded(items);
     } catch(e) {
       console.error('Firebase Fehler:', e);
       window._filmsLoaded([]);
@@ -49,7 +49,6 @@
 :root {
   --red: #D50000;
   --red-dark: #8B0000;
-  --red-mid: #B71C1C;
   --bg: #0a0000;
   --font: 'Plus Jakarta Sans', sans-serif;
   --text: #FFFFFF;
@@ -59,7 +58,6 @@
 }
 
 html { scroll-behavior: smooth; }
-
 body {
   font-family: var(--font);
   background: var(--bg);
@@ -67,7 +65,6 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
 }
-
 body::before {
   content: '';
   position: fixed;
@@ -79,7 +76,7 @@ body::before {
 }
 
 /* ── NAVBAR ── */
-nav {
+nav#navbar {
   position: fixed;
   top: 0; left: 0; right: 0;
   height: var(--nav-h);
@@ -88,8 +85,9 @@ nav {
   padding: 0 2rem;
   z-index: 100;
   transition: background 0.4s, backdrop-filter 0.4s, border-bottom 0.4s;
+  gap: 1.5rem;
 }
-nav.scrolled {
+nav#navbar.scrolled {
   background: rgba(10,0,0,0.88);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
@@ -102,6 +100,7 @@ nav.scrolled {
   color: var(--text);
   text-decoration: none;
   user-select: none;
+  flex-shrink: 0;
 }
 .logo-img {
   height: 28px;
@@ -110,8 +109,57 @@ nav.scrolled {
   vertical-align: middle;
   object-fit: contain;
 }
-.modal-logo .logo-img { height: 22px; }
 .logo span { color: var(--red); }
+
+/* ── SEARCH BAR ── */
+.search-wrap {
+  flex: 1;
+  max-width: 360px;
+  position: relative;
+  margin-left: auto;
+}
+.search-input {
+  width: 100%;
+  background: rgba(255,255,255,0.07);
+  border: 0.5px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  padding: 8px 14px 8px 36px;
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  transition: background 0.2s, border-color 0.2s;
+}
+.search-input::placeholder { color: var(--text-subtle); }
+.search-input:focus {
+  background: rgba(255,255,255,0.11);
+  border-color: rgba(213,0,0,0.4);
+}
+.search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  opacity: 0.4;
+  pointer-events: none;
+}
+.search-clear {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-subtle);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px;
+  display: none;
+}
+.search-clear.visible { display: block; }
 
 /* ── MAIN ── */
 main {
@@ -122,7 +170,6 @@ main {
 
 /* ── HERO ── */
 .hero { padding: 2rem 2rem 0; }
-
 .hero-card {
   position: relative;
   width: 100%;
@@ -162,17 +209,13 @@ main {
   margin-bottom: 0.75rem;
 }
 .hero-title {
-  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-size: clamp(1.8rem, 4vw, 3.2rem);
   font-weight: 800;
   letter-spacing: -0.03em;
   line-height: 1.05;
   margin-bottom: 0.6rem;
 }
-.hero-meta {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin-bottom: 1.25rem;
-}
+.hero-meta { font-size: 13px; color: var(--text-muted); margin-bottom: 1.25rem; }
 .hero-meta span { margin-right: 1rem; }
 .hero-desc {
   font-size: 15px;
@@ -181,7 +224,8 @@ main {
   max-width: 55ch;
   margin-bottom: 1.5rem;
 }
-.hero-actions { display: flex; gap: 10px; }
+.hero-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -194,6 +238,7 @@ main {
   cursor: pointer;
   border: none;
   transition: transform 0.15s, opacity 0.15s;
+  text-decoration: none;
 }
 .btn:hover { transform: scale(1.03); }
 .btn:active { transform: scale(0.97); }
@@ -202,27 +247,19 @@ main {
 
 /* ── SECTION ── */
 .section { padding: 2.5rem 2rem; }
-.section-header {
-  display: flex;
-  align-items: baseline;
-  gap: 1rem;
-  margin-bottom: 1.25rem;
-}
-.section-title {
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-.section-count {
-  font-size: 12px;
-  color: var(--text-subtle);
-}
-
 .film-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
 }
+
+/* ── SEARCH RESULTS HEADER ── */
+.search-results-header {
+  font-size: 13px;
+  color: var(--text-subtle);
+  margin-bottom: 1rem;
+}
+.search-results-header strong { color: var(--text-muted); }
 
 /* ── FILM CARD ── */
 .film-card {
@@ -234,16 +271,15 @@ main {
   background: #1a0000;
   transition: transform 0.25s cubic-bezier(.25,.46,.45,.94);
 }
-.film-card:hover {
-  transform: scale(1.025) translateY(-3px);
-}
+.film-card:hover { transform: scale(1.025) translateY(-3px); }
 .film-card:hover .card-thumb { transform: scale(1.06); }
 
-.card-thumb-wrap {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-}
+/* Unreleased: kein hover-lift, gedimmter Cursor */
+.film-card.unreleased { cursor: default; }
+.film-card.unreleased:hover { transform: none; }
+.film-card.unreleased:hover .card-thumb { transform: none; }
+
+.card-thumb-wrap { position: absolute; inset: 0; overflow: hidden; }
 .card-thumb {
   width: 100%; height: 100%;
   object-fit: cover;
@@ -252,21 +288,43 @@ main {
 }
 .card-thumb-placeholder {
   width: 100%; height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   font-size: 2.5rem;
 }
-
-/* Gradient: immer sichtbar (schwächer), beim Hover stärker */
 .card-gradient {
   position: absolute;
   inset: 0;
   background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.05) 55%, transparent 100%);
-  transition: opacity 0.3s;
 }
 
-/* Play-Overlay */
+/* Unreleased overlay — dim + lock icon */
+.unreleased-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.unreleased-badge-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.unreleased-icon {
+  font-size: 1.75rem;
+  opacity: 0.7;
+}
+.unreleased-label-center {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.6);
+}
+
+/* Play-Overlay (only for released) */
 .card-play-overlay {
   position: absolute;
   inset: 0;
@@ -277,8 +335,7 @@ main {
   transition: opacity 0.25s;
   background: rgba(0,0,0,0.3);
 }
-.film-card:hover .card-play-overlay { opacity: 1; }
-
+.film-card:not(.unreleased):hover .card-play-overlay { opacity: 1; }
 .play-circle {
   width: 48px; height: 48px;
   border-radius: 50%;
@@ -295,30 +352,35 @@ main {
   margin-left: 4px;
 }
 
-/* Card info — zwei Modi */
+/* Series badge on card */
+.card-series-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0,0,0,0.7);
+  border: 0.5px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.7);
+  backdrop-filter: blur(6px);
+}
+
+/* Card info */
 .card-info {
   position: absolute;
   bottom: 0; left: 0; right: 0;
   padding: 12px 14px;
   transition: opacity 0.25s, transform 0.25s;
 }
-
-/*
-  showCardInfo = true  → immer sichtbar
-  showCardInfo = false → nur beim Hover sichtbar (für Karten mit Film-Logo)
-*/
-.film-card.info-always .card-info {
-  opacity: 1;
-  transform: translateY(0);
-}
-.film-card.info-hover .card-info {
-  opacity: 0;
-  transform: translateY(6px);
-}
-.film-card.info-hover:hover .card-info {
-  opacity: 1;
-  transform: translateY(0);
-}
+.film-card.info-always .card-info { opacity: 1; transform: translateY(0); }
+.film-card.info-hover .card-info { opacity: 0; transform: translateY(6px); }
+.film-card.info-hover:hover .card-info { opacity: 1; transform: translateY(0); }
+/* Unreleased always shows info */
+.film-card.unreleased .card-info { opacity: 1; transform: translateY(0); }
 
 .card-genre {
   font-size: 10px;
@@ -360,6 +422,16 @@ main {
 }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
+/* ── NO RESULTS ── */
+.no-results {
+  grid-column: 1/-1;
+  padding: 4rem 2rem;
+  text-align: center;
+  color: var(--text-subtle);
+}
+.no-results-icon { font-size: 2rem; opacity: 0.3; margin-bottom: 0.75rem; }
+.no-results p { font-size: 14px; }
+
 /* ── MODAL (Fullscreen) ── */
 .modal-wrap {
   position: fixed;
@@ -387,6 +459,7 @@ main {
   -webkit-backdrop-filter: blur(18px);
   border-bottom: 0.5px solid rgba(255,255,255,0.07);
   z-index: 10;
+  flex-shrink: 0;
 }
 .back-btn {
   display: flex;
@@ -412,6 +485,7 @@ main {
   pointer-events: none;
 }
 .modal-logo span { color: var(--red); }
+.modal-logo .logo-img { height: 22px; }
 
 .modal-body {
   padding: 2rem 2rem 4rem;
@@ -419,6 +493,8 @@ main {
   margin: 0 auto;
   width: 100%;
 }
+
+/* Video */
 .modal-video-wrap {
   width: 100%;
   aspect-ratio: 16/9;
@@ -442,7 +518,38 @@ main {
   background: #080000;
   font-size: 13px;
 }
-.video-placeholder-icon { font-size: 2.5rem; opacity: 0.35; }
+.video-placeholder-icon { font-size: 2.5rem; opacity: 0.3; }
+
+/* Announcement box (unreleased) */
+.announcement-box {
+  width: 100%;
+  border-radius: 10px;
+  border: 0.5px solid rgba(213,0,0,0.25);
+  background: rgba(213,0,0,0.06);
+  padding: 2.5rem 2rem;
+  margin-bottom: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+}
+.announcement-icon { font-size: 2rem; opacity: 0.6; }
+.announcement-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--red);
+}
+.announcement-text { font-size: 14px; color: var(--text-muted); }
+.announcement-release {
+  font-size: 13px;
+  color: var(--text-subtle);
+  margin-top: 0.25rem;
+}
+
+/* Modal text */
 .modal-title {
   font-size: clamp(2rem, 5vw, 3rem);
   font-weight: 800;
@@ -463,6 +570,17 @@ main {
   background: rgba(213,0,0,0.16);
   color: var(--red);
   border: 0.5px solid rgba(213,0,0,0.32);
+  border-radius: 4px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.modal-unreleased-badge {
+  background: rgba(255,255,255,0.07);
+  color: var(--text-muted);
+  border: 0.5px solid rgba(255,255,255,0.15);
   border-radius: 4px;
   padding: 3px 9px;
   font-size: 11px;
@@ -495,6 +613,67 @@ main {
 }
 .credit-item span { font-size: 14px; }
 
+/* ── SERIES EPISODE LIST ── */
+.episodes-section { margin-bottom: 2rem; }
+.episodes-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
+  margin-bottom: 1rem;
+}
+.episode-list { display: flex; flex-direction: column; gap: 8px; }
+.episode-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 0.5px solid rgba(255,255,255,0.07);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.episode-item:hover { background: rgba(255,255,255,0.08); }
+.episode-item.active {
+  background: rgba(213,0,0,0.12);
+  border-color: rgba(213,0,0,0.3);
+}
+.episode-num {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-subtle);
+  width: 24px;
+  flex-shrink: 0;
+  text-align: center;
+}
+.episode-info { flex: 1; min-width: 0; }
+.episode-name {
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.episode-dur { font-size: 12px; color: var(--text-subtle); margin-top: 2px; }
+.episode-play {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.episode-item:hover .episode-play { background: rgba(255,255,255,0.2); }
+.episode-play-tri {
+  width: 0; height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 10px solid rgba(255,255,255,0.8);
+  margin-left: 3px;
+}
+
 /* ── FOOTER ── */
 footer {
   border-top: 0.5px solid rgba(255,255,255,0.05);
@@ -511,45 +690,50 @@ footer {
 .footer-logo span { color: rgba(213,0,0,0.45); }
 
 /* ── REVEAL ── */
-.reveal {
-  opacity: 0;
-  transform: translateY(14px);
-  transition: opacity 0.5s ease, transform 0.5s ease;
-}
+.reveal { opacity: 0; transform: translateY(14px); transition: opacity 0.5s ease, transform 0.5s ease; }
 .reveal.visible { opacity: 1; transform: translateY(0); }
 
 /* ── RESPONSIVE ── */
-@media (max-width: 600px) {
+@media (max-width: 640px) {
   .hero { padding: 1rem 1rem 0; }
   .section { padding: 2rem 1rem; }
-  .hero-content { padding: 1.25rem 1.25rem; }
+  .hero-content { padding: 1.25rem; }
   .hero-desc { display: none; }
   .film-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
   .modal-body { padding: 1.25rem 1rem 3rem; }
-  nav { padding: 0 1rem; }
+  nav#navbar { padding: 0 1rem; }
+  .search-wrap { max-width: 200px; }
 }
 </style>
 </head>
 <body>
 
+<!-- NAV -->
 <nav id="navbar">
   <a class="logo" href="#" onclick="closeModal(); return false;">
     <img src="https://i.ibb.co/8Drwfg9H/logo-mitschatten-cropped.png" alt="echt" class="logo-img"
          onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
     <span class="logo-text" style="display:none">echt<span>.</span></span>
   </a>
+
+  <div class="search-wrap">
+    <svg class="search-icon" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.3"/>
+      <path d="M9.5 9.5L12.5 12.5" stroke="white" stroke-width="1.3" stroke-linecap="round"/>
+    </svg>
+    <input class="search-input" id="search-input" type="search" placeholder="Suchen…" autocomplete="off" oninput="handleSearch(this.value)" />
+    <button class="search-clear" id="search-clear" onclick="clearSearch()" aria-label="Suche löschen">✕</button>
+  </div>
 </nav>
 
+<!-- MAIN -->
 <main id="main">
   <div class="hero" id="hero-section">
-    <div class="skeleton" id="hero-skeleton" style="aspect-ratio:16/8; border-radius:14px;"></div>
+    <div class="skeleton" id="hero-skeleton" style="aspect-ratio:1280/510; border-radius:14px;"></div>
   </div>
 
   <section class="section" id="films-section" style="display:none">
-    <div class="section-header">
-      <h2 class="section-title">Alle Filme</h2>
-      <span class="section-count" id="film-count"></span>
-    </div>
+    <div id="search-results-header" style="display:none" class="search-results-header"></div>
     <div class="film-grid" id="film-grid">
       <div class="skeleton"></div>
       <div class="skeleton"></div>
@@ -582,27 +766,15 @@ footer {
       <span style="display:none">echt<span>.</span></span>
     </div>
   </nav>
-  <div class="modal-body">
-    <div class="modal-video-wrap" id="modal-video-wrap">
-      <div class="video-placeholder">
-        <div class="video-placeholder-icon">▶</div>
-        <p>Kein Video verlinkt</p>
-      </div>
-    </div>
-    <h1 class="modal-title" id="modal-title"></h1>
-    <div class="modal-meta-row" id="modal-meta"></div>
-    <p class="modal-desc" id="modal-desc"></p>
-    <div class="modal-credits" id="modal-credits"></div>
+  <div class="modal-body" id="modal-body">
+    <!-- dynamisch befüllt -->
   </div>
 </div>
 
 <script>
-
-// ─────────────────────────────────────────
-// STATE
-// ─────────────────────────────────────────
-let allFilms = [];
+let allItems = [];
 let modalOpen = false;
+let activeEpisodeIdx = 0;
 
 // Navbar scroll
 const navbar = document.getElementById('navbar');
@@ -611,36 +783,63 @@ window.addEventListener('scroll', () => {
 }, { passive: true });
 
 // ─────────────────────────────────────────
+// SEARCH
+// ─────────────────────────────────────────
+function handleSearch(q) {
+  const clear = document.getElementById('search-clear');
+  clear.classList.toggle('visible', q.length > 0);
+  renderGrid(allItems, q.trim().toLowerCase());
+  // Hero ausblenden wenn aktiv gesucht wird
+  document.getElementById('hero-section').style.opacity = q ? '0.3' : '1';
+  document.getElementById('hero-section').style.pointerEvents = q ? 'none' : '';
+}
+
+function clearSearch() {
+  document.getElementById('search-input').value = '';
+  document.getElementById('search-clear').classList.remove('visible');
+  handleSearch('');
+}
+
+// ─────────────────────────────────────────
 // HERO
 // ─────────────────────────────────────────
-function renderHero(film) {
+function renderHero(item) {
   const hero = document.getElementById('hero-section');
-  const thumb = film.thumbnail
-    ? `<img class="hero-thumb" src="${film.thumbnail}" alt="${film.title}" loading="eager">`
-    : `<div class="hero-thumb" style="background:${film.color||'#3a0000'};width:100%;height:100%;"></div>`;
+  const thumb = item.thumbnail
+    ? `<img class="hero-thumb" src="${item.thumbnail}" alt="${item.title}" loading="eager">`
+    : `<div class="hero-thumb" style="background:${item.color||'#3a0000'};width:100%;height:100%;"></div>`;
+  const isSeries = item.type === 'series';
+  const isUnreleased = item.unreleased === true;
 
+  const badge = isUnreleased
+    ? `<div class="hero-badge" style="color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.25)">Demnächst</div>`
+    : `<div class="hero-badge">Featured</div>`;
+
+  const actions = isUnreleased
+    ? `<button class="btn btn-secondary" onclick="event.stopPropagation(); openItem('${item.id}')">Ankündigung</button>`
+    : `<button class="btn btn-primary" onclick="event.stopPropagation(); openItem('${item.id}')">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 2L11 7L3 12V2Z" fill="currentColor"/></svg>
+        ${isSeries ? 'Zur Serie' : 'Ansehen'}
+      </button>
+      <button class="btn btn-secondary" onclick="event.stopPropagation(); openItem('${item.id}')">Mehr Infos</button>`;
+
+  hero.style.opacity = '1';
+  hero.style.pointerEvents = '';
   hero.innerHTML = `
-    <div class="hero-card" onclick="openFilm('${film.id}')">
+    <div class="hero-card" onclick="openItem('${item.id}')">
       ${thumb}
       <div class="hero-overlay"></div>
       <div class="hero-content">
-        <div class="hero-badge">Featured</div>
-        <h1 class="hero-title">${film.title}</h1>
+        ${badge}
+        <h1 class="hero-title">${item.title}</h1>
         <div class="hero-meta">
-          <span>${film.year}</span>
-          <span>${film.duration}</span>
-          <span>${film.genre}</span>
+          <span>${item.year || ''}</span>
+          ${item.duration ? `<span>${item.duration}</span>` : ''}
+          ${isSeries && item.episodes ? `<span>${item.episodes.length} Folgen</span>` : ''}
+          <span>${item.genre || ''}</span>
         </div>
-        <p class="hero-desc">${film.desc}</p>
-        <div class="hero-actions">
-          <button class="btn btn-primary" onclick="event.stopPropagation(); openFilm('${film.id}')">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 2L11 7L3 12V2Z" fill="currentColor"/></svg>
-            Ansehen
-          </button>
-          <button class="btn btn-secondary" onclick="event.stopPropagation(); openFilm('${film.id}')">
-            Mehr Infos
-          </button>
-        </div>
+        <p class="hero-desc">${item.desc || ''}</p>
+        <div class="hero-actions">${actions}</div>
       </div>
     </div>`;
 }
@@ -648,40 +847,86 @@ function renderHero(film) {
 // ─────────────────────────────────────────
 // GRID
 // ─────────────────────────────────────────
-function renderGrid(films) {
+function renderGrid(items, query = '') {
   const grid = document.getElementById('film-grid');
-  const nonFeatured = films.filter(f => !f.featured);
+  const header = document.getElementById('search-results-header');
 
-  document.getElementById('film-count').textContent =
-    `${nonFeatured.length} ${nonFeatured.length === 1 ? 'Film' : 'Filme'}`;
+  // Featured aus Grid raushalten — außer bei Suche
+  let visible = query
+    ? items.filter(i => {
+        const s = `${i.title} ${i.genre} ${i.year} ${i.type || ''}`.toLowerCase();
+        return s.includes(query);
+      })
+    : items.filter(i => !i.featured);
 
-  if (nonFeatured.length === 0) {
-    grid.innerHTML = `<div style="grid-column:1/-1;padding:3rem;text-align:center;color:var(--text-subtle);font-size:14px;">Noch keine weiteren Filme.</div>`;
+  if (query) {
+    header.style.display = '';
+    header.innerHTML = visible.length > 0
+      ? `${visible.length} Ergebnis${visible.length !== 1 ? 'se' : ''} für <strong>„${query}"</strong>`
+      : '';
+  } else {
+    header.style.display = 'none';
+  }
+
+  if (visible.length === 0) {
+    grid.innerHTML = `<div class="no-results">
+      <div class="no-results-icon">🔍</div>
+      <p>Keine Ergebnisse für „${query}"</p>
+    </div>`;
     return;
   }
 
-  grid.innerHTML = nonFeatured.map(film => {
-    // showCardInfo: true → immer zeigen, false/undefined → nur bei Hover
-    const infoMode = film.showCardInfo === true ? 'info-always' : 'info-hover';
-    const thumb = film.thumbnail
-      ? `<img class="card-thumb" src="${film.thumbnail}" alt="${film.title}" loading="lazy">`
-      : `<div class="card-thumb-placeholder" style="background:${film.color||'#1a0000'}">🎞</div>`;
+  grid.innerHTML = visible.map(item => {
+    const isSeries = item.type === 'series';
+    const isUnreleased = item.unreleased === true;
+    const infoMode = isUnreleased ? '' : (item.showCardInfo === true ? 'info-always' : 'info-hover');
+    const unreleasedClass = isUnreleased ? 'unreleased' : '';
+
+    const thumb = item.thumbnail
+      ? `<img class="card-thumb" src="${item.thumbnail}" alt="${item.title}" loading="lazy">`
+      : `<div class="card-thumb-placeholder" style="background:${item.color||'#1a0000'}">🎞</div>`;
+
+    const seriesBadge = isSeries
+      ? `<div class="card-series-badge">Serie</div>` : '';
+
+    const unreleasedOverlay = isUnreleased ? `
+      <div class="unreleased-overlay">
+        <div class="unreleased-badge-center">
+          <div class="unreleased-icon">🔒</div>
+          <div class="unreleased-label-center">Demnächst</div>
+        </div>
+      </div>` : '';
+
+    const playOverlay = !isUnreleased ? `
+      <div class="card-play-overlay">
+        <div class="play-circle"><div class="play-tri"></div></div>
+      </div>` : '';
+
+    const metaStr = item.duration
+      ? `<span>${item.year || ''}</span><span class="card-dot"></span><span>${item.duration}</span>`
+      : item.episodes
+        ? `<span>${item.year || ''}</span><span class="card-dot"></span><span>${item.episodes.length} Folgen</span>`
+        : `<span>${item.year || ''}</span>`;
+
+    const onclick = isUnreleased
+      ? `openItem('${item.id}')`
+      : `openItem('${item.id}')`;
 
     return `
-      <div class="film-card reveal ${infoMode}" onclick="openFilm('${film.id}')" role="button" tabindex="0" aria-label="${film.title} öffnen" onkeydown="if(event.key==='Enter')openFilm('${film.id}')">
+      <div class="film-card reveal ${infoMode} ${unreleasedClass}"
+           onclick="${onclick}"
+           role="button" tabindex="0"
+           aria-label="${item.title} öffnen"
+           onkeydown="if(event.key==='Enter')openItem('${item.id}')">
         <div class="card-thumb-wrap">${thumb}</div>
         <div class="card-gradient"></div>
-        <div class="card-play-overlay">
-          <div class="play-circle"><div class="play-tri"></div></div>
-        </div>
+        ${seriesBadge}
+        ${unreleasedOverlay}
+        ${playOverlay}
         <div class="card-info">
-          <div class="card-genre">${film.genre}</div>
-          <div class="card-title">${film.title}</div>
-          <div class="card-meta">
-            <span>${film.year}</span>
-            <span class="card-dot"></span>
-            <span>${film.duration}</span>
-          </div>
+          <div class="card-genre">${item.genre || ''}</div>
+          <div class="card-title">${item.title}</div>
+          <div class="card-meta">${metaStr}</div>
         </div>
       </div>`;
   }).join('');
@@ -691,7 +936,7 @@ function renderGrid(films) {
     const io = new IntersectionObserver(entries => {
       entries.forEach((e, i) => {
         if (e.isIntersecting) {
-          setTimeout(() => e.target.classList.add('visible'), i * 60);
+          setTimeout(() => e.target.classList.add('visible'), i * 55);
           io.unobserve(e.target);
         }
       });
@@ -701,46 +946,157 @@ function renderGrid(films) {
 }
 
 // ─────────────────────────────────────────
-// MODAL
+// MODAL — FILM
 // ─────────────────────────────────────────
-function openFilm(id) {
-  const film = allFilms.find(f => f.id === id);
-  if (!film) return;
-
-  document.getElementById('modal-title').textContent = film.title;
-  document.getElementById('modal-meta').innerHTML = `
-    <span class="modal-genre-badge">${film.genre}</span>
-    <span>${film.year}</span>
-    <span>·</span>
-    <span>${film.duration}</span>`;
-  document.getElementById('modal-desc').textContent = film.desc || '';
-
+function buildFilmModal(film) {
+  const isUnreleased = film.unreleased === true;
   const credits = [
     { label: 'Regie', value: film.director },
     { label: 'Kamera', value: film.camera },
     { label: 'Musik', value: film.music },
     { label: 'Darsteller', value: film.cast },
   ].filter(c => c.value);
-  document.getElementById('modal-credits').innerHTML = credits
-    .map(c => `<div class="credit-item"><label>${c.label}</label><span>${c.value}</span></div>`)
-    .join('');
 
-  const vw = document.getElementById('modal-video-wrap');
-  if (film.youtubeId) {
-    vw.innerHTML = `<iframe
-      src="https://www.youtube.com/embed/${film.youtubeId}?autoplay=0&rel=0&modestbranding=1&color=white&iv_load_policy=3&disablekb=0"
-      allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-      allowfullscreen title="${film.title}"></iframe>`;
-  } else {
-    vw.innerHTML = `<div class="video-placeholder"><div class="video-placeholder-icon">▶</div><p>Kein Video verlinkt</p></div>`;
-  }
+  const videoBlock = isUnreleased
+    ? `<div class="announcement-box">
+        <div class="announcement-icon">📽️</div>
+        <div class="announcement-title">Demnächst</div>
+        <p class="announcement-text">Dieser Film ist noch nicht erschienen.</p>
+        ${film.releaseDate ? `<p class="announcement-release">Geplant: ${film.releaseDate}</p>` : ''}
+      </div>`
+    : film.youtubeId
+      ? `<div class="modal-video-wrap">
+          <iframe
+            src="https://www.youtube.com/embed/${film.youtubeId}?autoplay=0&rel=0&modestbranding=1&color=white&iv_load_policy=3"
+            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen title="${film.title}"></iframe>
+        </div>`
+      : `<div class="modal-video-wrap">
+          <div class="video-placeholder">
+            <div class="video-placeholder-icon">▶</div>
+            <p>Kein Video verlinkt</p>
+          </div>
+        </div>`;
+
+  const unreleasedBadge = isUnreleased
+    ? `<span class="modal-unreleased-badge">Unveröffentlicht</span>` : '';
+
+  return `
+    ${videoBlock}
+    <h1 class="modal-title">${film.title}</h1>
+    <div class="modal-meta-row">
+      <span class="modal-genre-badge">${film.genre || ''}</span>
+      ${unreleasedBadge}
+      ${film.year ? `<span>${film.year}</span>` : ''}
+      ${film.duration ? `<span>·</span><span>${film.duration}</span>` : ''}
+    </div>
+    ${film.desc ? `<p class="modal-desc">${film.desc}</p>` : ''}
+    ${credits.length ? `<div class="modal-credits">${credits.map(c =>
+      `<div class="credit-item"><label>${c.label}</label><span>${c.value}</span></div>`
+    ).join('')}</div>` : ''}`;
+}
+
+// ─────────────────────────────────────────
+// MODAL — SERIE
+// ─────────────────────────────────────────
+function buildSeriesModal(series, activeIdx) {
+  const isUnreleased = series.unreleased === true;
+  const episodes = series.episodes || [];
+  const ep = episodes[activeIdx];
+
+  const videoBlock = isUnreleased
+    ? `<div class="announcement-box">
+        <div class="announcement-icon">🎬</div>
+        <div class="announcement-title">Demnächst</div>
+        <p class="announcement-text">Diese Serie ist noch nicht erschienen.</p>
+        ${series.releaseDate ? `<p class="announcement-release">Geplant: ${series.releaseDate}</p>` : ''}
+      </div>`
+    : ep && ep.youtubeId
+      ? `<div class="modal-video-wrap">
+          <iframe
+            src="https://www.youtube.com/embed/${ep.youtubeId}?autoplay=0&rel=0&modestbranding=1&color=white&iv_load_policy=3"
+            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen title="${ep.title || series.title}"></iframe>
+        </div>`
+      : `<div class="modal-video-wrap">
+          <div class="video-placeholder">
+            <div class="video-placeholder-icon">▶</div>
+            <p>${ep ? 'Kein Video verlinkt' : 'Keine Folgen verfügbar'}</p>
+          </div>
+        </div>`;
+
+  const episodeList = !isUnreleased && episodes.length > 0 ? `
+    <div class="episodes-section">
+      <div class="episodes-title">Folgen</div>
+      <div class="episode-list">
+        ${episodes.map((e, i) => `
+          <div class="episode-item ${i === activeIdx ? 'active' : ''}"
+               onclick="switchEpisode('${series.id}', ${i})">
+            <div class="episode-num">${i + 1}</div>
+            <div class="episode-info">
+              <div class="episode-name">${e.title || `Folge ${i+1}`}</div>
+              ${e.duration ? `<div class="episode-dur">${e.duration}</div>` : ''}
+            </div>
+            <div class="episode-play"><div class="episode-play-tri"></div></div>
+          </div>`).join('')}
+      </div>
+    </div>` : '';
+
+  const credits = [
+    { label: 'Regie', value: series.director },
+    { label: 'Kamera', value: series.camera },
+    { label: 'Musik', value: series.music },
+    { label: 'Darsteller', value: series.cast },
+  ].filter(c => c.value);
+
+  const unreleasedBadge = isUnreleased
+    ? `<span class="modal-unreleased-badge">Unveröffentlicht</span>` : '';
+
+  return `
+    ${videoBlock}
+    <h1 class="modal-title">${series.title}</h1>
+    <div class="modal-meta-row">
+      <span class="modal-genre-badge">${series.genre || ''}</span>
+      <span class="modal-unreleased-badge" style="background:rgba(255,255,255,0.05);color:var(--text-subtle);border-color:rgba(255,255,255,0.1)">Serie</span>
+      ${unreleasedBadge}
+      ${series.year ? `<span>${series.year}</span>` : ''}
+      ${episodes.length ? `<span>·</span><span>${episodes.length} Folgen</span>` : ''}
+    </div>
+    ${series.desc ? `<p class="modal-desc">${series.desc}</p>` : ''}
+    ${episodeList}
+    ${credits.length ? `<div class="modal-credits">${credits.map(c =>
+      `<div class="credit-item"><label>${c.label}</label><span>${c.value}</span></div>`
+    ).join('')}</div>` : ''}`;
+}
+
+// Episode wechseln (ohne Modal zu schließen)
+function switchEpisode(seriesId, idx) {
+  const series = allItems.find(i => i.id === seriesId);
+  if (!series) return;
+  activeEpisodeIdx = idx;
+  document.getElementById('modal-body').innerHTML = buildSeriesModal(series, idx);
+  document.getElementById('modal').scrollTop = 0;
+}
+
+// ─────────────────────────────────────────
+// OPEN / CLOSE MODAL
+// ─────────────────────────────────────────
+function openItem(id) {
+  const item = allItems.find(i => i.id === id);
+  if (!item) return;
+  activeEpisodeIdx = 0;
+
+  const body = document.getElementById('modal-body');
+  body.innerHTML = item.type === 'series'
+    ? buildSeriesModal(item, 0)
+    : buildFilmModal(item);
 
   document.getElementById('modal').classList.add('open');
   document.getElementById('modal').scrollTop = 0;
   document.body.style.overflow = 'hidden';
   modalOpen = true;
-  history.pushState({ filmId: id }, film.title, `#${id}`);
-  document.title = `${film.title} — echt`;
+  history.pushState({ itemId: id }, item.title, `#${id}`);
+  document.title = `${item.title} — echt`;
 }
 
 function closeModal() {
@@ -748,15 +1104,13 @@ function closeModal() {
   document.getElementById('modal').classList.remove('open');
   document.body.style.overflow = '';
   modalOpen = false;
-  // Video stoppen
-  const vw = document.getElementById('modal-video-wrap');
-  vw.innerHTML = `<div class="video-placeholder"><div class="video-placeholder-icon">▶</div><p>Kein Video verlinkt</p></div>`;
+  document.getElementById('modal-body').innerHTML = '';
   history.pushState({}, 'echt', window.location.pathname);
   document.title = 'echt';
 }
 
 window.addEventListener('popstate', e => {
-  if (e.state?.filmId) openFilm(e.state.filmId);
+  if (e.state?.itemId) openItem(e.state.itemId);
   else closeModal();
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
@@ -764,33 +1118,32 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal()
 // ─────────────────────────────────────────
 // BOOT
 // ─────────────────────────────────────────
-window._filmsLoaded = function(films) {
-  allFilms = films;
+window._filmsLoaded = function(items) {
+  allItems = items;
 
   const skeleton = document.getElementById('hero-skeleton');
   if (skeleton) skeleton.remove();
 
-  if (films.length === 0) {
+  if (items.length === 0) {
     document.getElementById('hero-section').innerHTML = '';
     document.getElementById('films-section').style.display = '';
     document.getElementById('film-grid').innerHTML = `
-      <div style="grid-column:1/-1;padding:4rem 2rem;text-align:center;color:var(--text-subtle);">
-        <div style="font-size:2rem;margin-bottom:1rem;opacity:0.3;">🎬</div>
-        <p style="font-size:14px;">Noch keine Filme in der Datenbank.</p>
+      <div class="no-results">
+        <div class="no-results-icon">🎬</div>
+        <p>Noch keine Inhalte in der Datenbank.</p>
       </div>`;
     return;
   }
 
-  const featured = films.find(f => f.featured) || films[0];
+  const featured = items.find(i => i.featured) || items[0];
   if (featured) renderHero(featured);
-
   document.getElementById('films-section').style.display = '';
-  renderGrid(films);
+  renderGrid(items);
 
   const hash = window.location.hash.slice(1);
   if (hash) {
-    const f = films.find(f => f.id === hash);
-    if (f) openFilm(f.id);
+    const found = items.find(i => i.id === hash);
+    if (found) openItem(found.id);
   }
 };
 
