@@ -131,7 +131,7 @@ main { position: relative; z-index: 1; padding-top: var(--nav-h); overflow-x: hi
   position: relative; overflow: hidden; flex-shrink: 0;
 }
 .hero-dot.active {
-  width: 28px;
+  width: 84px;
   background: rgba(255,255,255,0.35);
 }
 .hero-dot.active::after {
@@ -319,7 +319,7 @@ main { position: relative; z-index: 1; padding-top: var(--nav-h); overflow-x: hi
 .ep-arrow svg { flex-shrink: 0; }
 
 .episode-card {
-  flex-shrink: 0; width: 200px; min-width: 200px; border-radius: 8px; overflow: hidden;
+  flex-shrink: 0; width: 260px; min-width: 260px; border-radius: 8px; overflow: hidden;
   cursor: pointer; background: rgba(255,255,255,0.04); border: 0.5px solid rgba(255,255,255,0.07);
   transition: background 0.2s, border-color 0.2s, transform 0.2s;
   position: relative;
@@ -759,7 +759,7 @@ function buildSeriesModal(series, activeIdx, seasonFilter) {
 function scrollEps(id, dir) {
   const row = document.getElementById('ep-row-' + id);
   if (!row) return;
-  row.scrollBy({ left: dir * 220, behavior: 'smooth' });
+  row.scrollBy({ left: dir * 280, behavior: 'smooth' });
   setTimeout(() => updateEpArrows(id), 320);
 }
 function updateEpArrows(id) {
