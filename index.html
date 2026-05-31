@@ -680,7 +680,7 @@ function buildSeriesModal(series, activeIdx, seasonFilter) {
         </div>
       </div>`
     : ep && ep.youtubeId
-      ? `<div class="modal-video-wrap"><iframe src="https://www.youtube.com/embed/${ep.youtubeId}?autoplay=0&rel=0&modestbranding=1&color=white&iv_load_policy=3" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen title="${ep.title||series.title}"></iframe></div>`
+      ? `<div class="modal-video-wrap"><iframe src="https://www.youtube.com/embed/${ep.youtubeId}?autoplay=0&rel=0&modestbranding=1&color=white&iv_load_policy=3&enablejsapi=1" allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen title="${ep.title||series.title}"></iframe></div>`
       : `<div class="modal-thumb-fallback" ${sThumbBg}>
           <div class="modal-thumb-fallback-overlay">
             <div class="modal-thumb-badge" style="color:var(--text-subtle);border-color:rgba(255,255,255,0.2)">Kein Video verfügbar</div>
@@ -754,6 +754,41 @@ function buildSeriesModal(series, activeIdx, seasonFilter) {
         ${episodeCards}
       </div>` : ''}
     ${credits.length ? `<div class="modal-credits">${credits.map(c => `<div class="credit-item"><label>${c.label}</label><span>${c.value}</span></div>`).join('')}</div>` : ''}`;
+}
+
+// ── AUTO-NEXT EPISODE ──
+window.addEventListener('message', function(e) {
+  if (!e.data || typeof e.data !== 'string') return;
+  let data;
+  try { data = JSON.parse(e.data); } catch { return; }
+  // YouTube sends: {"event":"onStateChange","info":0} when video ends
+  if (data.event === 'onStateChange' && data.info === 0) {
+    autoNextEpisode();
+  }
+});
+
+function autoNextEpisode() {
+  // Find the currently open series
+  const series = allItems.find(i => i.id === currentItemId && i.type === 'series');
+  if (!series) return;
+  const allEps = series.episodes || [];
+  const seasons = [...new Set(allEps.map(e => e.season).filter(s => s != null))].sort((a,b) => a-b);
+  const hasSeason = seasons.length > 1;
+  const eps = hasSeason && activeSeason != null ? allEps.filter(e => e.season === activeSeason) : allEps;
+  const nextIdx = activeEpisodeIdx + 1;
+  if (nextIdx < eps.length) {
+    // Small delay so it feels natural, not instant
+    setTimeout(() => {
+      switchEpisode(currentItemId, nextIdx);
+      // Autoplay the new episode
+      const iframe = document.querySelector('#modal-body iframe');
+      if (iframe) {
+        const src = iframe.src;
+        iframe.src = src.replace('autoplay=0', 'autoplay=1');
+      }
+    }, 1500);
+  }
+  // If last episode of a season, could switch to next season — but let's keep it simple for now
 }
 
 function scrollEps(id, dir) {
