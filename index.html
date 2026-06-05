@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<link rel="icon" type="image/png" href="favicon.png">
 <meta charset="UTF-8">
+<link rel="icon" type="image/png" href="favicon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>echt Studios</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -214,6 +214,24 @@ main { position: relative; z-index: 1; padding-top: var(--nav-h); overflow-x: hi
 .card-title { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 4px; }
 .card-meta { font-size: 11px; color: var(--text-muted); display: flex; gap: 8px; align-items: center; }
 .card-dot { width: 2px; height: 2px; border-radius: 50%; background: var(--text-subtle); display: inline-block; flex-shrink: 0; }
+
+
+/* ── WATCH PROGRESS BAR ── */
+.card-progress {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+  background: rgba(255,255,255,0.12); z-index: 3;
+}
+.card-progress-fill {
+  height: 100%; background: var(--red); border-radius: 0 1.5px 1.5px 0;
+  transition: width 0.4s ease;
+  min-width: 0;
+}
+.btn-resume {
+  background: var(--red); color: #fff;
+}
+.resume-ep-label {
+  font-size: 11px; opacity: 0.75; font-weight: 500; margin-left: 2px;
+}
 
 /* ── SKELETON ── */
 .skeleton { background: linear-gradient(90deg, #1a0000 25%, #2d0000 50%, #1a0000 75%); background-size: 200% 100%; animation: shimmer 1.6s infinite; border-radius: 10px; aspect-ratio: 16/10; }
@@ -480,13 +498,25 @@ function buildHeroSlide(item, idx) {
   const badge = isUnreleased
     ? `<div class="hero-badge" style="color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.25)">Demnächst</div>`
     : `<div class="hero-badge">Featured</div>`;
+  const prog = (isSeries && !isUnreleased) ? getSeriesProgress(item.id) : null;
+  const resumeLabel = prog ? (() => {
+    const eps = item.episodes || [];
+    const ep = eps[prog.epIdx];
+    return ep ? (ep.title || `Folge ${prog.epIdx + 1}`) : null;
+  })() : null;
   const actions = isUnreleased
     ? `<button class="btn btn-secondary" onclick="event.stopPropagation();openItem('${item.id}')">Ankündigung</button>`
-    : `<button class="btn btn-primary" onclick="event.stopPropagation();openItem('${item.id}')">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 2L11 7L3 12V2Z" fill="currentColor"/></svg>
-        ${isSeries ? 'Zur Serie' : 'Ansehen'}
-      </button>
-      <button class="btn btn-secondary" onclick="event.stopPropagation();openItem('${item.id}')">Mehr Infos</button>`;
+    : prog && resumeLabel
+      ? `<button class="btn btn-resume" onclick="event.stopPropagation();resumeSeries('${item.id}')">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 2L11 7L3 12V2Z" fill="currentColor"/></svg>
+          Weiter <span class="resume-ep-label">· ${resumeLabel}</span>
+        </button>
+        <button class="btn btn-secondary" onclick="event.stopPropagation();openItem('${item.id}')">Mehr Infos</button>`
+      : `<button class="btn btn-primary" onclick="event.stopPropagation();openItem('${item.id}')">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 2L11 7L3 12V2Z" fill="currentColor"/></svg>
+          ${isSeries ? 'Zur Serie' : 'Ansehen'}
+        </button>
+        <button class="btn btn-secondary" onclick="event.stopPropagation();openItem('${item.id}')">Mehr Infos</button>`;
   return `
     <div class="hero-slide ${idx === 0 ? 'active' : ''}" data-idx="${idx}" onclick="openItem('${item.id}')">
       ${thumb}
@@ -607,6 +637,7 @@ function renderGrid(items, query = '') {
           <div class="card-title">${item.title}</div>
           <div class="card-meta">${metaStr}</div>
         </div>
+        ${isSeries ? `<div class="card-progress"><div class="card-progress-fill" data-id="${item.id}" style="width:0%"></div></div>` : ''}
       </div>`;
   }).join('');
 
@@ -616,6 +647,8 @@ function renderGrid(items, query = '') {
     }, { threshold: 0.08 });
     document.querySelectorAll('.reveal').forEach(el => io.observe(el));
   });
+  // Update progress bars for all series
+  allItems.filter(i => i.type === 'series').forEach(s => updateProgressBars(s.id));
 }
 
 // ── MODAL: FILM ──
@@ -799,7 +832,7 @@ window.onYouTubeIframeAPIReady = function() {
   ytReady = true;
 };
 
-function initYTPlayer(seriesId, epIdx, autoplay) {
+function initYTPlayer(seriesId, epIdx, autoplay, seekTo) {
   const series = allItems.find(i => i.id === seriesId);
   if (!series) return;
   const allEps = series.episodes || [];
@@ -828,8 +861,15 @@ function initYTPlayer(seriesId, epIdx, autoplay) {
         iv_load_policy: 3,
       },
       events: {
+        onReady: function(e) {
+          if (seekTo && seekTo > 5) e.target.seekTo(seekTo, true);
+          startProgressTracking(seriesId);
+        },
         onStateChange: function(e) {
           if (e.data === YT.PlayerState.ENDED) {
+            // Mark episode as fully watched (clear its progress, next ep will be saved)
+            const prog = getSeriesProgress(seriesId);
+            if (prog) saveProgress(seriesId, epIdx + 1, 0, prog.duration);
             autoNextEpisode(seriesId);
           }
         }
@@ -868,7 +908,90 @@ function autoNextEpisode(seriesId) {
   }
 }
 
+
+// ── WATCH PROGRESS (localStorage) ──
+const PROGRESS_KEY = 'echt_progress';
+
+function getProgress() {
+  try { return JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}'); } catch { return {}; }
+}
+function saveProgress(seriesId, epIdx, seconds, duration) {
+  const p = getProgress();
+  p[seriesId] = { epIdx, seconds, duration, updatedAt: Date.now() };
+  localStorage.setItem(PROGRESS_KEY, JSON.stringify(p));
+}
+function getSeriesProgress(seriesId) {
+  return getProgress()[seriesId] || null;
+}
+function clearProgress(seriesId) {
+  const p = getProgress();
+  delete p[seriesId];
+  localStorage.setItem(PROGRESS_KEY, JSON.stringify(p));
+}
+// Save progress periodically while playing
+let progressInterval = null;
+function startProgressTracking(seriesId) {
+  stopProgressTracking();
+  progressInterval = setInterval(() => {
+    if (!ytPlayer || typeof ytPlayer.getCurrentTime !== 'function') return;
+    const state = ytPlayer.getPlayerState();
+    if (state === 1 || state === 2) { // playing or paused
+      const seconds = Math.floor(ytPlayer.getCurrentTime());
+      const duration = Math.floor(ytPlayer.getDuration() || 0);
+      saveProgress(seriesId, activeEpisodeIdx, seconds, duration);
+      updateProgressBars(seriesId);
+    }
+  }, 3000);
+}
+function stopProgressTracking() {
+  if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
+}
+function updateProgressBars(seriesId) {
+  const prog = getSeriesProgress(seriesId);
+  if (!prog) return;
+  // Update card progress bar in grid
+  const bar = document.querySelector(`.card-progress-fill[data-id="${seriesId}"]`);
+  if (bar && prog.duration > 0) {
+    // Rough: assume all eps same duration, map to total progress
+    const series = allItems.find(i => i.id === seriesId);
+    if (!series) return;
+    const total = series.episodes ? series.episodes.length : 1;
+    const pct = ((prog.epIdx + Math.min(prog.seconds / (prog.duration || 1), 0.98)) / total) * 100;
+    bar.style.width = Math.min(pct, 99) + '%';
+  }
+}
+
 // ── OPEN ITEM ──
+function resumeSeries(id) {
+  const prog = getSeriesProgress(id);
+  const item = allItems.find(i => i.id === id);
+  if (!prog || !item) { openItem(id); return; }
+
+  currentItemId = id;
+  activeEpisodeIdx = prog.epIdx;
+  // Figure out season for that episode
+  const allEps = item.episodes || [];
+  const ep = allEps[prog.epIdx];
+  activeSeason = ep?.season ?? null;
+  const seasons = [...new Set(allEps.map(e => e.season).filter(s => s != null))].sort((a,b)=>a-b);
+  if (seasons.length > 1 && activeSeason == null) activeSeason = seasons[0];
+
+  const body = document.getElementById('modal-body');
+  body.innerHTML = buildSeriesModal(item, prog.epIdx, activeSeason);
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('modal').scrollTop = 0;
+  document.body.style.overflow = 'hidden';
+  modalOpen = true;
+  history.pushState({ itemId: id }, item.title, `#${id}`);
+  document.title = `${item.title} — echt`;
+
+  // Init player and seek to saved position
+  setTimeout(() => {
+    initYTPlayer(id, prog.epIdx, false, prog.seconds);
+    setTimeout(() => updateEpArrows(id), 50);
+  }, 100);
+}
+
 function openItem(id) {
   const item = allItems.find(i => i.id === id);
   if (!item) return;
@@ -912,6 +1035,7 @@ function closeModal() {
   document.body.style.overflow = '';
   modalOpen = false;
   currentItemId = null;
+  stopProgressTracking();
   if (ytPlayer) { try { ytPlayer.destroy(); } catch(e) {} ytPlayer = null; }
   document.getElementById('modal-body').innerHTML = '';
   history.pushState({}, 'echt', window.location.pathname);
