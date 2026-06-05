@@ -28,7 +28,11 @@
       const snapshot = await getDocs(collection(db, 'films'));
       const items = [];
       snapshot.forEach(d => items.push({ id: d.id, ...d.data() }));
-      items.sort((a, b) => (b.year || 0) - (a.year || 0));
+      items.sort((a, b) => {
+    // Featured items: sort by order field
+    if (a.featured && b.featured) return (a.order ?? 99) - (b.order ?? 99);
+    return (b.year || 0) - (a.year || 0);
+  });
       window._filmsLoaded(items);
     } catch(e) {
       console.error('Firebase Fehler:', e);
@@ -216,23 +220,21 @@ main { position: relative; z-index: 1; padding-top: var(--nav-h); overflow-x: hi
 .card-dot { width: 2px; height: 2px; border-radius: 50%; background: var(--text-subtle); display: inline-block; flex-shrink: 0; }
 
 
-/* ── WATCH PROGRESS BAR ── */
-.card-progress {
-  position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
-  background: rgba(255,255,255,0.12); z-index: 3;
-}
-.card-progress-fill {
-  height: 100%; background: var(--red); border-radius: 0 1.5px 1.5px 0;
-  transition: width 0.4s ease;
-  min-width: 0;
-}
 .btn-resume {
   background: var(--red); color: #fff;
 }
-.resume-ep-label {
-  font-size: 11px; opacity: 0.75; font-weight: 500; margin-left: 2px;
-}
 
+
+
+/* ── EPISODE PROGRESS BAR ── */
+.episode-progress {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+  background: rgba(255,255,255,0.12); z-index: 4; border-radius: 0 0 8px 8px;
+}
+.episode-progress-fill {
+  height: 100%; background: var(--red);
+  border-radius: 0 1.5px 1.5px 0; transition: width 0.4s ease;
+}
 /* ── SKELETON ── */
 .skeleton { background: linear-gradient(90deg, #1a0000 25%, #2d0000 50%, #1a0000 75%); background-size: 200% 100%; animation: shimmer 1.6s infinite; border-radius: 10px; aspect-ratio: 16/10; }
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
@@ -492,8 +494,16 @@ function clearSearch() {
 function buildHeroSlide(item, idx) {
   const isSeries = item.type === 'series';
   const isUnreleased = item.unreleased === true;
-  const thumb = item.thumbnail
-    ? `<img class="hero-thumb" src="${item.thumbnail}" alt="${item.title}" loading="eager">`
+  // For series with progress: show current episode's YT thumbnail
+  let heroThumbSrc = item.thumbnail || null;
+  if (isSeries && prog) {
+    const eps = item.episodes || [];
+    const ep = eps[prog.epIdx];
+    if (ep && ep.youtubeId) heroThumbSrc = `https://img.youtube.com/vi/${ep.youtubeId}/maxresdefault.jpg`;
+    else if (ep && ep.thumbnail) heroThumbSrc = ep.thumbnail;
+  }
+  const thumb = heroThumbSrc
+    ? `<img class="hero-thumb" src="${heroThumbSrc}" alt="${item.title}" loading="eager">`
     : `<div class="hero-thumb" style="background:${item.color||'#3a0000'};width:100%;height:100%;"></div>`;
   const badge = isUnreleased
     ? `<div class="hero-badge" style="color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.25)">Demnächst</div>`
@@ -509,9 +519,9 @@ function buildHeroSlide(item, idx) {
     : prog && resumeLabel
       ? `<button class="btn btn-resume" onclick="event.stopPropagation();resumeSeries('${item.id}')">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 2L11 7L3 12V2Z" fill="currentColor"/></svg>
-          Weiter <span class="resume-ep-label">· ${resumeLabel}</span>
+          Weiter
         </button>
-        <button class="btn btn-secondary" onclick="event.stopPropagation();openItem('${item.id}')">Mehr Infos</button>`
+        <button class="btn btn-secondary" onclick="event.stopPropagation();openItem('${item.id}')">· ${resumeLabel}</button>`
       : `<button class="btn btn-primary" onclick="event.stopPropagation();openItem('${item.id}')">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 2L11 7L3 12V2Z" fill="currentColor"/></svg>
           ${isSeries ? 'Zur Serie' : 'Ansehen'}
@@ -538,6 +548,14 @@ function buildHeroSlide(item, idx) {
 
 function renderHero(items) {
   featuredItems = items.filter(i => i.featured);
+  // Sort: series with watch progress first
+  featuredItems.sort((a, b) => {
+    const aHasProgress = a.type === 'series' && !!getSeriesProgress(a.id);
+    const bHasProgress = b.type === 'series' && !!getSeriesProgress(b.id);
+    if (aHasProgress && !bHasProgress) return -1;
+    if (!aHasProgress && bHasProgress) return 1;
+    return (a.order ?? 99) - (b.order ?? 99);
+  });
   const heroSection = document.getElementById('hero-section');
 
   if (featuredItems.length === 0) {
@@ -637,7 +655,6 @@ function renderGrid(items, query = '') {
           <div class="card-title">${item.title}</div>
           <div class="card-meta">${metaStr}</div>
         </div>
-        ${isSeries ? `<div class="card-progress"><div class="card-progress-fill" data-id="${item.id}" style="width:0%"></div></div>` : ''}
       </div>`;
   }).join('');
 
@@ -647,8 +664,6 @@ function renderGrid(items, query = '') {
     }, { threshold: 0.08 });
     document.querySelectorAll('.reveal').forEach(el => io.observe(el));
   });
-  // Update progress bars for all series
-  allItems.filter(i => i.type === 'series').forEach(s => updateProgressBars(s.id));
 }
 
 // ── MODAL: FILM ──
@@ -754,6 +769,12 @@ function buildSeriesModal(series, activeIdx, seasonFilter) {
                 <div class="episode-name">${e.title || 'Ohne Titel'}</div>
                 ${e.duration ? `<div class="episode-dur">${e.duration}</div>` : ''}
               </div>
+              ${(() => {
+                const prog = getSeriesProgress(series.id);
+                if (!prog || prog.epIdx !== i || !prog.duration) return '';
+                const pct = Math.min((prog.seconds / prog.duration) * 100, 98);
+                return `<div class="episode-progress"><div class="episode-progress-fill" data-ep-id="${series.id}-${i}" style="width:${pct}%"></div></div>`;
+              })()}
             </div>`;
         }).join('')}
       </div>
@@ -935,30 +956,19 @@ function startProgressTracking(seriesId) {
   progressInterval = setInterval(() => {
     if (!ytPlayer || typeof ytPlayer.getCurrentTime !== 'function') return;
     const state = ytPlayer.getPlayerState();
-    if (state === 1 || state === 2) { // playing or paused
+    if (state === 1 || state === 2) {
       const seconds = Math.floor(ytPlayer.getCurrentTime());
       const duration = Math.floor(ytPlayer.getDuration() || 0);
       saveProgress(seriesId, activeEpisodeIdx, seconds, duration);
-      updateProgressBars(seriesId);
+      // Update episode progress bar in list
+      const fill = document.querySelector(`.episode-progress-fill[data-ep-id="${seriesId}-${activeEpisodeIdx}"]`);
+      if (fill && duration > 0) fill.style.width = Math.min((seconds/duration)*100, 98) + '%';
     }
   }, 3000);
 }
 function stopProgressTracking() {
   if (progressInterval) { clearInterval(progressInterval); progressInterval = null; }
 }
-function updateProgressBars(seriesId) {
-  const prog = getSeriesProgress(seriesId);
-  if (!prog) return;
-  // Update card progress bar in grid
-  const bar = document.querySelector(`.card-progress-fill[data-id="${seriesId}"]`);
-  if (bar && prog.duration > 0) {
-    // Rough: assume all eps same duration, map to total progress
-    const series = allItems.find(i => i.id === seriesId);
-    if (!series) return;
-    const total = series.episodes ? series.episodes.length : 1;
-    const pct = ((prog.epIdx + Math.min(prog.seconds / (prog.duration || 1), 0.98)) / total) * 100;
-    bar.style.width = Math.min(pct, 99) + '%';
-  }
 }
 
 // ── OPEN ITEM ──
