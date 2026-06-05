@@ -9,6 +9,14 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
 
+<script>
+// Define _filmsLoaded early so the Firebase module can call it before app JS loads.
+// If app isn't ready yet, buffer the result and replay when ready.
+window._filmsBuffer = null;
+window._filmsLoaded = function(items) {
+  window._filmsBuffer = items;
+};
+</script>
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getFirestore, collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
@@ -1053,6 +1061,7 @@ window.addEventListener('popstate', e => { if (e.state?.itemId) openItem(e.state
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
 // ── BOOT ──
+// Real _filmsLoaded — overwrite the early stub
 window._filmsLoaded = function(items) {
   window._filmsLoaded._called = true;
   allItems = items;
@@ -1074,10 +1083,15 @@ window._filmsLoaded = function(items) {
   if (hash) { const f = items.find(i => i.id === hash); if (f) openItem(f.id); }
 };
 
-// Fallback: if Firebase module never resolves (e.g. network error), unblock UI after 5s
-setTimeout(() => {
-  if (!window._filmsLoaded._called) window._filmsLoaded([]);
-}, 5000);
+// If Firebase module already resolved before this script ran, replay now
+if (window._filmsBuffer !== null) {
+  window._filmsLoaded(window._filmsBuffer);
+} else {
+  // Fallback: if Firebase never resolves (network error etc), unblock after 5s
+  setTimeout(() => {
+    if (!window._filmsLoaded._called) window._filmsLoaded([]);
+  }, 5000);
+}
 </script>
 </body>
 </html>
