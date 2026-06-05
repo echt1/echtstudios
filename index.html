@@ -21,24 +21,21 @@
     appId: "1:1041546888235:web:5e21c71d99d815b46e966e",
     measurementId: "G-LE6VPJVD71"
   };
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  window._loadFilms = async function() {
-    try {
-      const snapshot = await getDocs(collection(db, 'films'));
-      const items = [];
-      snapshot.forEach(d => items.push({ id: d.id, ...d.data() }));
-      items.sort((a, b) => {
-    // Featured items: sort by order field
-    if (a.featured && b.featured) return (a.order ?? 99) - (b.order ?? 99);
-    return (b.year || 0) - (a.year || 0);
-  });
-      window._filmsLoaded(items);
-    } catch(e) {
-      console.error('Firebase Fehler:', e);
-      window._filmsLoaded([]);
-    }
-  };
+  try {
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const snapshot = await getDocs(collection(db, 'films'));
+    const items = [];
+    snapshot.forEach(d => items.push({ id: d.id, ...d.data() }));
+    items.sort((a, b) => {
+      if (a.featured && b.featured) return (a.order ?? 99) - (b.order ?? 99);
+      return (b.year || 0) - (a.year || 0);
+    });
+    window._filmsLoaded(items);
+  } catch(e) {
+    console.error('Firebase Fehler:', e);
+    window._filmsLoaded([]);
+  }
 </script>
 
 <style>
@@ -519,9 +516,9 @@ function buildHeroSlide(item, idx) {
     : prog && resumeLabel
       ? `<button class="btn btn-resume" onclick="event.stopPropagation();resumeSeries('${item.id}')">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 2L11 7L3 12V2Z" fill="currentColor"/></svg>
-          Weiter
+          Weiter — ${resumeLabel}
         </button>
-        <button class="btn btn-secondary" onclick="event.stopPropagation();openItem('${item.id}')">· ${resumeLabel}</button>`
+        <button class="btn btn-secondary" onclick="event.stopPropagation();openItem('${item.id}')">Mehr Infos</button>`
       : `<button class="btn btn-primary" onclick="event.stopPropagation();openItem('${item.id}')">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 2L11 7L3 12V2Z" fill="currentColor"/></svg>
           ${isSeries ? 'Zur Serie' : 'Ansehen'}
@@ -1057,6 +1054,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal()
 
 // ── BOOT ──
 window._filmsLoaded = function(items) {
+  window._filmsLoaded._called = true;
   allItems = items;
   const skeleton = document.getElementById('hero-skeleton');
   if (skeleton) skeleton.remove();
@@ -1076,12 +1074,10 @@ window._filmsLoaded = function(items) {
   if (hash) { const f = items.find(i => i.id === hash); if (f) openItem(f.id); }
 };
 
-function waitForFirebase(n) {
-  if (window._loadFilms) window._loadFilms();
-  else if (n < 20) setTimeout(() => waitForFirebase(n+1), 100);
-  else window._filmsLoaded([]);
-}
-waitForFirebase(0);
+// Fallback: if Firebase module never resolves (e.g. network error), unblock UI after 5s
+setTimeout(() => {
+  if (!window._filmsLoaded._called) window._filmsLoaded([]);
+}, 5000);
 </script>
 </body>
 </html>
