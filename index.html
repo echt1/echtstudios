@@ -397,8 +397,14 @@ footer { border-top: 0.5px solid rgba(255,255,255,0.05); padding: 2rem; display:
 @media (max-width: 640px) {
   .hero { padding: 1rem 1rem 0; }
   .section { padding: 2rem 1rem; }
-  .hero-content { padding: 1.25rem; }
+  .hero-card { aspect-ratio: 4/3; }
+  .hero-content { padding: 1rem 1.25rem 1.25rem; }
+  .hero-title { font-size: 1.6rem; margin-bottom: 0.3rem; }
+  .hero-meta { margin-bottom: 0.75rem; }
   .hero-desc { display: none; }
+  .hero-badge { margin-bottom: 0.4rem; }
+  .hero-actions .btn { padding: 8px 14px; font-size: 13px; }
+  .hero-dots { bottom: 0.75rem; right: 1.25rem; }
   .film-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
   .modal-body { padding: 1.25rem 1rem 3rem; }
   nav#navbar { padding: 0 1rem; }
@@ -535,7 +541,7 @@ function buildHeroSlide(item, idx) {
     : prog && resumeLabel
       ? `<button class="btn btn-resume" onclick="event.stopPropagation();resumeSeries('${item.id}')">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 2L11 7L3 12V2Z" fill="currentColor"/></svg>
-          Weiter ・ ${resumeLabel}
+          Weiter — ${resumeLabel}
         </button>
         <button class="btn btn-secondary" onclick="event.stopPropagation();openItem('${item.id}')">Mehr Infos</button>`
       : `<button class="btn btn-primary" onclick="event.stopPropagation();openItem('${item.id}')">
