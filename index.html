@@ -42,8 +42,19 @@ window._filmsLoaded = function(items) { window._filmsBuffer = items; };
   }
 
   loadFromFirebase()
-    .then(items => window._filmsLoaded(items))
-    .catch(e => { console.error('Firebase:', e); window._filmsLoaded([]); });
+    .then(items => {
+      console.log('Firebase OK, items:', items.length);
+      window._filmsLoaded(items);
+    })
+    .catch(e => {
+      console.error('Firebase FEHLER:', e.code, e.message);
+      // Show error visibly on page for mobile debugging
+      document.addEventListener('DOMContentLoaded', () => {
+        const el = document.getElementById('hero-skeleton') || document.body;
+        el.insertAdjacentHTML('afterend', `<div style="color:#ff6b6b;padding:2rem;font-family:monospace;font-size:12px;position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.9);z-index:9999">Firebase Fehler: ${e.code} — ${e.message}</div>`);
+      });
+      window._filmsLoaded([]);
+    });
 </script>
 
 <style>
