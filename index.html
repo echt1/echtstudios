@@ -510,6 +510,7 @@ function clearSearch() {
 function buildHeroSlide(item, idx) {
   const isSeries = item.type === 'series';
   const isUnreleased = item.unreleased === true;
+  const prog = (isSeries && !isUnreleased) ? getSeriesProgress(item.id) : null;
   // For series with progress: show current episode's YT thumbnail
   let heroThumbSrc = item.thumbnail || null;
   if (isSeries && prog) {
@@ -524,7 +525,6 @@ function buildHeroSlide(item, idx) {
   const badge = isUnreleased
     ? `<div class="hero-badge" style="color:rgba(255,255,255,0.5);border-color:rgba(255,255,255,0.25)">Demnächst</div>`
     : `<div class="hero-badge">Featured</div>`;
-  const prog = (isSeries && !isUnreleased) ? getSeriesProgress(item.id) : null;
   const resumeLabel = prog ? (() => {
     const eps = item.episodes || [];
     const ep = eps[prog.epIdx];
