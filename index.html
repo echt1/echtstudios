@@ -394,7 +394,7 @@ footer { border-top: 0.5px solid rgba(255,255,255,0.05); padding: 2rem; display:
 .reveal.visible { opacity: 1; transform: translateY(0); }
 
 /* ── RESPONSIVE ── */
-@media (max-width: 640px) {
+@media (max-width: 900px) {
   .hero { padding: 1rem 1rem 0; }
   .section { padding: 2rem 1rem; }
   .hero-card { aspect-ratio: 4/3; }
@@ -1071,10 +1071,50 @@ function closeModal() {
   document.getElementById('modal-body').innerHTML = '';
   history.pushState({}, 'echt', window.location.pathname);
   document.title = 'echt';
+  // Re-render hero so progress-based sorting updates
+  if (heroTimer) { clearInterval(heroTimer); heroTimer = null; }
+  renderHero(allItems);
 }
 
 window.addEventListener('popstate', e => { if (e.state?.itemId) openItem(e.state.itemId); else closeModal(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+document.addEventListener('keydown', e => {
+  // Don't fire when typing in search
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+  switch(e.key) {
+    case 'Escape':
+      closeModal();
+      break;
+    case 'ArrowLeft':
+      if (!modalOpen && featuredItems.length > 1) {
+        e.preventDefault();
+        goHeroSlide((heroIdx - 1 + featuredItems.length) % featuredItems.length);
+      }
+      break;
+    case 'ArrowRight':
+      if (!modalOpen && featuredItems.length > 1) {
+        e.preventDefault();
+        goHeroSlide((heroIdx + 1) % featuredItems.length);
+      }
+      break;
+    case ' ':
+      if (modalOpen && ytPlayer && typeof ytPlayer.getPlayerState === 'function') {
+        e.preventDefault();
+        ytPlayer.getPlayerState() === 1 ? ytPlayer.pauseVideo() : ytPlayer.playVideo();
+      }
+      break;
+    case 'f':
+    case 'F':
+      if (modalOpen && ytPlayer && typeof ytPlayer.getIframe === 'function') {
+        const iframe = ytPlayer.getIframe();
+        if (iframe) {
+          const req = iframe.requestFullscreen || iframe.webkitRequestFullscreen;
+          if (req) req.call(iframe);
+        }
+      }
+      break;
+  }
+});
 
 // ── BOOT ──
 // Real _filmsLoaded — overwrite the early stub
