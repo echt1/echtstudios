@@ -569,11 +569,16 @@ function buildHeroSlide(item, idx) {
 }
 
 function renderHero(items) {
+  heroIdx = 0;
   featuredItems = items.filter(i => i.featured);
   // Sort: series with watch progress first
   featuredItems.sort((a, b) => {
-    const aHasProgress = a.type === 'series' && !!getSeriesProgress(a.id);
-    const bHasProgress = b.type === 'series' && !!getSeriesProgress(b.id);
+    const aP = a.type === 'series' ? getSeriesProgress(a.id) : null;
+    const bP = b.type === 'series' ? getSeriesProgress(b.id) : null;
+    const aEps = (a.episodes || []).length;
+    const bEps = (b.episodes || []).length;
+    const aHasProgress = aP && aP.epIdx < aEps && (aP.seconds > 5);
+    const bHasProgress = bP && bP.epIdx < bEps && (bP.seconds > 5);
     if (aHasProgress && !bHasProgress) return -1;
     if (!aHasProgress && bHasProgress) return 1;
     return (a.order ?? 99) - (b.order ?? 99);
@@ -910,9 +915,18 @@ function initYTPlayer(seriesId, epIdx, autoplay, seekTo) {
         },
         onStateChange: function(e) {
           if (e.data === YT.PlayerState.ENDED) {
-            // Mark episode as fully watched (clear its progress, next ep will be saved)
             const prog = getSeriesProgress(seriesId);
-            if (prog) saveProgress(seriesId, epIdx + 1, 0, prog.duration);
+            const series = allItems.find(i => i.id === seriesId);
+            const allEps = series ? series.episodes || [] : [];
+            const seasons = [...new Set(allEps.map(e => e.season).filter(s => s != null))].sort((a,b)=>a-b);
+            const hasSeason = seasons.length > 1;
+            const eps = hasSeason && activeSeason != null ? allEps.filter(e => e.season === activeSeason) : allEps;
+            if (epIdx >= eps.length - 1) {
+              // Last episode — clear progress entirely
+              clearProgress(seriesId);
+            } else {
+              if (prog) saveProgress(seriesId, epIdx + 1, 0, prog.duration);
+            }
             autoNextEpisode(seriesId);
           }
         }
@@ -945,9 +959,12 @@ function autoNextEpisode(seriesId) {
     setTimeout(() => {
       activeEpisodeIdx = nextIdx;
       document.getElementById('modal-body').innerHTML = buildSeriesModal(series, nextIdx, activeSeason);
-      initYTPlayer(seriesId, nextIdx, true); // autoplay = true
+      initYTPlayer(seriesId, nextIdx, true);
       setTimeout(() => updateEpArrows(seriesId), 50);
     }, 1500);
+  } else {
+    // Series finished — clear progress so it no longer shows as "in progress"
+    clearProgress(seriesId);
   }
 }
 
